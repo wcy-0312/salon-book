@@ -42,7 +42,7 @@ def send_tomorrow_reminders():
                 booking.staff_id,
             )
 
-            try_send_line_message(
+            sent = try_send_line_message(
                 booking.line_user_id,
                 (
                     "SalonBook 預約提醒\n\n"
@@ -54,6 +54,13 @@ def send_tomorrow_reminders():
                     "期待您的到來！"
                 ),
             )
+
+            if not sent:
+                print(
+                    f"Reminder failed for booking "
+                    f"{booking.id}"
+                )
+                continue
 
             booking.reminder_sent_at = datetime.now()
 

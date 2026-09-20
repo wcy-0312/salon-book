@@ -377,16 +377,19 @@ def send_line_message(
 def try_send_line_message(
     line_user_id: str,
     message: str,
-) -> None:
+) -> bool:
     try:
         send_line_message(
             line_user_id,
             message,
         )
+        return True
+
     except Exception as error:
         print(
             f"Failed to send LINE message: {error}"
         )
+        return False
 
 # =========================================================
 # Root

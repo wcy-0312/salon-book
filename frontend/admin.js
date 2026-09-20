@@ -1,3 +1,45 @@
+const LIFF_ID = "2011675360-s1xEolBB";
+
+let adminIdToken = null;
+
+async function initializeAdminLiff() {
+    await liff.init({
+        liffId: LIFF_ID,
+    });
+
+    if (!liff.isLoggedIn()) {
+        liff.login();
+        return false;
+    }
+
+    adminIdToken = liff.getIDToken();
+
+    if (!adminIdToken) {
+        throw new Error("LINE ID token is unavailable");
+    }
+
+    const response = await fetch(
+        `${API_BASE_URL}/auth/admin`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                id_token: adminIdToken,
+            }),
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error(
+            `Admin authentication failed: ${response.status}`
+        );
+    }
+
+    return true;
+}
+
 const API_BASE_URL =
     "https://salon-book-production.up.railway.app";
 
@@ -23,7 +65,12 @@ async function loadBookings() {
     try {
 
         const response = await fetch(
-            `${API_BASE_URL}/bookings?status=pending`
+            `${API_BASE_URL}/bookings?status=pending`,
+            {
+                headers: {
+                    Authorization: `Bearer ${adminIdToken}`,
+                },
+            }
         );
 
 
@@ -218,6 +265,9 @@ async function updateBooking(
             `${API_BASE_URL}/bookings/${bookingId}/${action}`,
             {
                 method: "PATCH",
+                headers: {
+                    Authorization: `Bearer ${adminIdToken}`,
+                },
             }
         );
 
@@ -280,4 +330,26 @@ refreshButton.addEventListener(
    Init
 ========================================= */
 
-loadBookings();
+async function initializeAdmin() {
+    try {
+        const authenticated =
+            await initializeAdminLiff();
+
+        if (!authenticated) {
+            return;
+        }
+
+        await loadBookings();
+
+    } catch (error) {
+        console.error(
+            "Admin initialization failed:",
+            error
+        );
+
+        bookingList.innerHTML =
+            '<p class="empty">無法驗證管理員身分</p>';
+    }
+}
+
+initializeAdmin();

@@ -1,6 +1,8 @@
+import os
+from pathlib import Path
 from datetime import date, datetime, time, timedelta
 from enum import Enum
-from pathlib import Path
+
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,7 +14,13 @@ from sqlmodel import Field, Session, SQLModel, create_engine, select
 # =========================================================
 
 BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / "data"
+
+DATA_DIR = Path(
+    os.getenv(
+        "DATA_DIR",
+        BASE_DIR / "data",
+    )
+)
 
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 

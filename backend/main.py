@@ -455,6 +455,17 @@ def create_booking(
 
     line_user_id = line_payload["sub"]
 
+    minimum_booking_time = (
+        datetime.now()
+        + timedelta(hours=1)
+    )
+
+    if data.start_at < minimum_booking_time:
+        raise HTTPException(
+            status_code=409,
+            detail="Booking must be made at least 1 hour in advance",
+        )
+
     with Session(engine) as session:
 
         # -------------------------
@@ -788,11 +799,19 @@ def get_availability(
 
         candidate_start = work_start
 
+        minimum_booking_time = (
+            datetime.now()
+            + timedelta(hours=1)
+        )
 
         while (
             candidate_start + service_duration
             <= work_end
         ):
+
+            if candidate_start < minimum_booking_time:
+                candidate_start += slot_interval
+                continue
 
             candidate_end = (
                 candidate_start

@@ -236,17 +236,32 @@ nextButton.addEventListener("click", async (event) => {
 
             if (response.status === 409) {
 
-                alert(
-                    "此時段剛剛已被其他人預約，請重新選擇時段。"
-                );
+                const errorData = await response.json();
 
-                // 回到日期 / 時段頁面
+                if (
+                    errorData.detail ===
+                    "Time slot is no longer available"
+                ) {
+                    alert(
+                        "此時段剛剛已被其他人預約，請重新選擇時段。"
+                    );
+                } else if (
+                    errorData.detail ===
+                    "Booking must be made at least 1 hour in advance"
+                ) {
+                    alert(
+                        "預約需至少提前 1 小時，請重新選擇時段。"
+                    );
+                } else {
+                    alert(
+                        "此時段目前無法預約，請重新選擇時段。"
+                    );
+                }
+
                 bookingPage.classList.add("hidden");
                 datetimePage.classList.remove("hidden");
 
                 currentStep = 2;
-
-                // 原本選擇的時間失效
                 selectedTime = null;
 
                 nextButton.textContent = "請選擇時段";
@@ -255,7 +270,6 @@ nextButton.addEventListener("click", async (event) => {
                 summary.textContent =
                     `${selectedService.name} · $${selectedService.price.toLocaleString()}`;
 
-                // 重新向後端取得最新 availability
                 const slots = await fetchAvailability(
                     selectedDate
                 );
@@ -414,6 +428,25 @@ function renderCalendar() {
                 day
             );
 
+        const date =
+            new Date(
+                currentYear,
+                currentMonth,
+                day
+            );
+
+        const todayStart =
+            new Date(
+                today.getFullYear(),
+                today.getMonth(),
+                today.getDate()
+            );
+
+        if (date < todayStart) {
+            button.disabled = true;
+            button.classList.add("disabled");
+        }
+
 
         /*
          * 沒有可預約時段的日期不能按
@@ -437,6 +470,12 @@ function renderCalendar() {
 
 
         calendar.appendChild(button);
+
+        const isCurrentMonth =
+            currentYear === today.getFullYear() &&
+            currentMonth === today.getMonth();
+
+        previousMonthButton.disabled = isCurrentMonth;
 
     }
 

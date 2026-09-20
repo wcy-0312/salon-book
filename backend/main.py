@@ -125,6 +125,10 @@ class LineAuthResponse(SQLModel):
     display_name: str | None = None
 
 
+class AdminAuthRequest(SQLModel):
+    id_token: str
+
+
 # =========================================================
 # Seed Data
 # =========================================================
@@ -286,6 +290,28 @@ def verify_line_id_token(id_token: str) -> dict:
         )
 
     return response.json()
+
+
+def verify_admin(id_token: str) -> dict:
+    line_payload = verify_line_id_token(id_token)
+
+    admin_line_user_id = os.getenv(
+        "ADMIN_LINE_USER_ID"
+    )
+
+    if not admin_line_user_id:
+        raise HTTPException(
+            status_code=500,
+            detail="ADMIN_LINE_USER_ID is not configured",
+        )
+
+    if line_payload["sub"] != admin_line_user_id:
+        raise HTTPException(
+            status_code=403,
+            detail="Admin access required",
+        )
+
+    return line_payload
 
 
 def send_line_message(
@@ -940,3 +966,15 @@ def authenticate_line(request: LineAuthRequest):
     )
 
 
+@app.post("/auth/admin")
+def authenticate_admin(
+    request: AdminAuthRequest,
+):
+    payload = verify_admin(
+        request.id_token
+    )
+
+    return {
+        "is_admin": True,
+        "display_name": payload.get("name"),
+    }

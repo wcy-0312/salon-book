@@ -792,18 +792,6 @@ async function initializeLiff() {
             liffId: LIFF_ID,
         });
 
-        console.log("LIFF initialized");
-
-        console.log(
-            "In LINE client:",
-            liff.isInClient()
-        );
-
-        console.log(
-            "Logged in:",
-            liff.isLoggedIn()
-        );
-
         if (!liff.isLoggedIn()) {
             liff.login();
             return;
@@ -811,15 +799,20 @@ async function initializeLiff() {
 
         const profile = await liff.getProfile();
 
-        console.log(
-            "LINE profile:",
-            profile
+        console.log("LINE profile:", profile);
+
+        alert(
+            `LINE 連線成功\n使用者：${profile.displayName}`
         );
 
     } catch (error) {
         console.error(
             "LIFF initialization failed:",
             error
+        );
+
+        alert(
+            `LINE 初始化失敗：${error.message}`
         );
     }
 }

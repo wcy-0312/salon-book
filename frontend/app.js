@@ -790,6 +790,34 @@ function formatDuration(minutes) {
 
 let lineIdToken = null;
 
+
+async function verifyLineIdentity() {
+    if (!lineIdToken) {
+        throw new Error("LINE ID token is unavailable");
+    }
+
+    const response = await fetch(
+        `${API_BASE_URL}/auth/line`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                id_token: lineIdToken,
+            }),
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error(
+            `LINE authentication failed: ${response.status}`
+        );
+    }
+
+    return await response.json();
+}
+
 async function initializeLiff() {
     try {
         await liff.init({
@@ -805,6 +833,12 @@ async function initializeLiff() {
 
         lineIdToken = liff.getIDToken();
 
+        const lineUser = await verifyLineIdentity();
+
+        alert(
+            `LINE 身分驗證成功\n${lineUser.display_name}`
+        );
+        
         console.log(
             "LINE user:",
             profile.displayName

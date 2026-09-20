@@ -838,11 +838,7 @@ async function initializeLiff() {
 
         lineIdToken = liff.getIDToken();
 
-        const lineUser = await verifyLineIdentity();
-
-        alert(
-            `LINE 身分驗證成功\n${lineUser.display_name}`
-        );
+        await verifyLineIdentity();
 
         console.log(
             "LINE user:",

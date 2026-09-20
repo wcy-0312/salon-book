@@ -92,45 +92,6 @@ const today = new Date();
 let currentYear = today.getFullYear();
 let currentMonth = today.getMonth();
 
-
-/*
- * 暫時使用假資料。
- *
- * 之後 Backend 做好後，
- * 這整段會改成 API response。
- */
-// const mockAvailableSlots = {
-//     "2026-09-21": [
-//         "10:00",
-//         "11:00",
-//         "14:00",
-//         "16:00"
-//     ],
-
-//     "2026-09-22": [
-//         "13:00",
-//         "15:00",
-//         "17:00"
-//     ],
-
-//     "2026-09-23": [
-//         "10:00",
-//         "12:00",
-//         "18:00"
-//     ],
-
-//     "2026-09-25": [
-//         "11:00",
-//         "14:00",
-//         "17:30"
-//     ],
-
-//     "2026-09-26": [
-//         "10:00",
-//         "13:00",
-//         "16:00"
-//     ]
-// };
 let availableSlots = {};
 
 /* -------------------------
@@ -266,6 +227,8 @@ nextButton.addEventListener("click", async (event) => {
 
                         start_at:
                             `${selectedDate}T${selectedTime}:00`,
+                            
+                        id_token: lineIdToken,
                     }),
                 }
             );

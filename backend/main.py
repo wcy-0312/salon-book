@@ -89,10 +89,10 @@ class Booking(SQLModel, table=True):
     customer_name: str
     customer_phone: str
 
+    line_user_id: str | None = Field(default=None, index=True)
+
     start_at: datetime
-
     status: BookingStatus = BookingStatus.PENDING
-
     created_at: datetime = Field(
         default_factory=datetime.now
     )
@@ -106,6 +106,7 @@ class BookingCreate(SQLModel):
     customer_phone: str
 
     start_at: datetime
+    id_token: str
 
 
 class AvailabilityResponse(SQLModel):
@@ -257,6 +258,36 @@ app.add_middleware(
 
 
 # =========================================================
+# Functions
+# =========================================================
+
+def verify_line_id_token(id_token: str) -> dict:
+    channel_id = os.getenv("LINE_CHANNEL_ID")
+
+    if not channel_id:
+        raise HTTPException(
+            status_code=500,
+            detail="LINE_CHANNEL_ID is not configured",
+        )
+
+    response = httpx.post(
+        "https://api.line.me/oauth2/v2.1/verify",
+        data={
+            "id_token": id_token,
+            "client_id": channel_id,
+        },
+        timeout=10.0,
+    )
+
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid LINE ID token",
+        )
+
+    return response.json()
+
+# =========================================================
 # Root
 # =========================================================
 
@@ -331,6 +362,11 @@ def get_schedules():
 def create_booking(
     data: BookingCreate,
 ):
+    line_payload = verify_line_id_token(
+        data.id_token
+    )
+
+    line_user_id = line_payload["sub"]
 
     with Session(engine) as session:
 
@@ -499,6 +535,8 @@ def create_booking(
 
             customer_name=data.customer_name,
             customer_phone=data.customer_phone,
+            
+            line_user_id=line_user_id,
 
             start_at=data.start_at,
 
@@ -827,30 +865,7 @@ def reject_booking(
 
 @app.post("/auth/line", response_model=LineAuthResponse)
 def authenticate_line(request: LineAuthRequest):
-    channel_id = os.getenv("LINE_CHANNEL_ID")
-
-    if not channel_id:
-        raise HTTPException(
-            status_code=500,
-            detail="LINE_CHANNEL_ID is not configured",
-        )
-
-    response = httpx.post(
-        "https://api.line.me/oauth2/v2.1/verify",
-        data={
-            "id_token": request.id_token,
-            "client_id": channel_id,
-        },
-        timeout=10.0,
-    )
-
-    if response.status_code != 200:
-        raise HTTPException(
-            status_code=401,
-            detail="Invalid LINE ID token",
-        )
-
-    payload = response.json()
+    payload = verify_line_id_token(request.id_token)
 
     return LineAuthResponse(
         line_user_id=payload["sub"],

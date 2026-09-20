@@ -1,4 +1,4 @@
-const API_BASE =
+const API_BASE_URL =
     "https://salon-book-production.up.railway.app";
 
 const bookingList =
@@ -23,7 +23,7 @@ async function loadBookings() {
     try {
 
         const response = await fetch(
-            `${API_BASE}/bookings?status=pending`
+            `${API_BASE_URL}/bookings?status=pending`
         );
 
 
@@ -215,7 +215,7 @@ async function updateBooking(
     try {
 
         const response = await fetch(
-            `${API_BASE}/bookings/${bookingId}/${action}`,
+            `${API_BASE_URL}/bookings/${bookingId}/${action}`,
             {
                 method: "PATCH",
             }

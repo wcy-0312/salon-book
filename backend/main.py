@@ -1036,3 +1036,47 @@ def authenticate_admin(
         "is_admin": True,
         "display_name": payload.get("name"),
     }
+
+
+# =========================================================
+# 隔日預約通知
+# =========================================================
+
+@app.post("/internal/reminders/tomorrow")
+def trigger_tomorrow_reminders(
+    authorization: str | None = Header(default=None),
+):
+    reminder_secret = os.getenv(
+        "REMINDER_SECRET"
+    )
+
+    if not reminder_secret:
+        raise HTTPException(
+            status_code=500,
+            detail="REMINDER_SECRET is not configured",
+        )
+
+    scheme, _, token = (
+        authorization or ""
+    ).partition(" ")
+
+    if (
+        scheme.lower() != "bearer"
+        or token != reminder_secret
+    ):
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid reminder authorization",
+        )
+
+    # 放在這裡 import，避免 main.py <-> reminder.py
+    # 產生 circular import。
+    from backend.reminder import (
+        send_tomorrow_reminders,
+    )
+
+    send_tomorrow_reminders()
+
+    return {
+        "message": "Tomorrow reminders processed",
+    }

@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>SalonBook</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <main class="container">
+
+        <!-- Step 1：選擇服務 -->
+        <div id="service-page" class="page">
+
+            <header class="header">
+                <h1>SalonBook</h1>
+                <p>預約你的髮型設計師</p>
+            </header>
+
+            <section class="section">
+                <h2>選擇設計師</h2>
+
+                <div class="staff-list">
+                    <button class="staff-card selected" data-staff="andy" type="button">
+                        <div class="avatar">A</div>
+
+                        <div>
+                            <strong>Andy</strong>
+                            <span>髮型設計師</span>
+                        </div>
+                    </button>
+                </div>
+            </section>
+
+            <section class="section">
+                <h2>選擇服務</h2>
+
+                <div class="service-list">
+
+                    <button
+                        class="service-card"
+                        data-service="cut"
+                        data-price="600"
+                        data-duration="60"
+                        type="button"
+                    >
+                        <div>
+                            <strong>剪髮</strong>
+                            <span>約 60 分鐘</span>
+                        </div>
+
+                        <span class="price">$600</span>
+                    </button>
+
+                    <button
+                        class="service-card"
+                        data-service="perm"
+                        data-price="800"
+                        data-duration="180"
+                        type="button"
+                    >
+                        <div>
+                            <strong>燙髮</strong>
+                            <span>約 3 小時</span>
+                        </div>
+
+                        <span class="price">$800 起</span>
+                    </button>
+
+                    <button
+                        class="service-card"
+                        data-service="color"
+                        data-price="1200"
+                        data-duration="180"
+                        type="button"
+                    >
+                        <div>
+                            <strong>染髮</strong>
+                            <span>約 3 小時</span>
+                        </div>
+
+                        <span class="price">$1,200 起</span>
+                    </button>
+
+                    <button
+                        class="service-card"
+                        data-service="care"
+                        data-price="1000"
+                        data-duration="120"
+                        type="button"
+                    >
+                        <div>
+                            <strong>護髮</strong>
+                            <span>約 2 小時</span>
+                        </div>
+
+                        <span class="price">$1,000 起</span>
+                    </button>
+
+                </div>
+            </section>
+
+        </div>
+
+
+        <!-- Step 2：選擇日期與時間 -->
+        <div id="datetime-page" class="page hidden">
+
+            <header class="page-header">
+                <button 
+                    id="back-button" 
+                    class="back-button" 
+                    type="button">
+                    ←
+                </button>
+
+                <div>
+                    <h1>選擇預約時間</h1>
+                    <p id="booking-service-summary"></p>
+                </div>
+            </header>
+
+            <section class="section">
+
+                <div class="calendar-header">
+                    <button id="previous-month" class="month-button" type="button">
+                        ‹
+                    </button>
+
+                    <h2 id="calendar-title"></h2>
+
+                    <button id="next-month" class="month-button" type="button">
+                        ›
+                    </button>
+                </div>
+
+                <div class="weekdays">
+                    <span>日</span>
+                    <span>一</span>
+                    <span>二</span>
+                    <span>三</span>
+                    <span>四</span>
+                    <span>五</span>
+                    <span>六</span>
+                </div>
+
+                <div id="calendar" class="calendar"></div>
+
+            </section>
+
+            <section id="time-section" class="section hidden">
+
+                <h2 id="selected-date-title">
+                    選擇時段
+                </h2>
+
+                <div id="time-slots" class="time-slots"></div>
+
+            </section>
+
+        </div>
+
+
+        <!-- Step 3：確認預約 -->
+        <div id="booking-page" class="page hidden">
+
+            <header class="page-header">
+                <button 
+                    id="booking-back-button" 
+                    class="back-button"
+                    type="button">
+                    ←
+                </button>
+
+                <div>
+                    <h1>確認預約</h1>
+                    <p>確認預約內容並填寫聯絡資料</p>
+                </div>
+            </header>
+
+            <section class="section">
+
+                <div class="booking-summary-card">
+
+                    <div class="booking-summary-row">
+                        <span>設計師</span>
+                        <strong>Andy</strong>
+                    </div>
+
+                    <div class="booking-summary-row">
+                        <span>服務</span>
+                        <strong id="confirm-service"></strong>
+                    </div>
+
+                    <div class="booking-summary-row">
+                        <span>日期</span>
+                        <strong id="confirm-date"></strong>
+                    </div>
+
+                    <div class="booking-summary-row">
+                        <span>時間</span>
+                        <strong id="confirm-time"></strong>
+                    </div>
+
+                    <div class="booking-summary-row">
+                        <span>預估時間</span>
+                        <strong id="confirm-duration"></strong>
+                    </div>
+
+                    <div class="booking-summary-row price-row">
+                        <span>價格</span>
+                        <strong id="confirm-price"></strong>
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <section class="section">
+
+                <h2>聯絡資料</h2>
+
+                <div class="form-group">
+                    <label for="customer-name">
+                        姓名
+                    </label>
+
+                    <input
+                        id="customer-name"
+                        type="text"
+                        placeholder="請輸入姓名"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="customer-phone">
+                        手機號碼
+                    </label>
+
+                    <input
+                        id="customer-phone"
+                        type="tel"
+                        inputmode="tel"
+                        placeholder="09xxxxxxxx"
+                    >
+                </div>
+
+            </section>
+
+        </div>
+
+
+        <!-- Step 4：預約申請完成 -->
+        <div id="success-page" class="page hidden">
+
+            <div class="success-content">
+
+                <div class="success-icon">
+                    ✓
+                </div>
+
+                <h1>預約申請已送出</h1>
+
+                <p>
+                    目前尚未完成預約，
+                    <br>
+                    請等待設計師確認。
+                </p>
+
+                <div class="status-badge">
+                    等待設計師確認
+                </div>
+
+
+                <div class="booking-summary-card success-summary">
+
+                    <div class="booking-summary-row">
+                        <span>設計師</span>
+                        <strong>Andy</strong>
+                    </div>
+
+                    <div class="booking-summary-row">
+                        <span>服務</span>
+                        <strong id="success-service"></strong>
+                    </div>
+
+                    <div class="booking-summary-row">
+                        <span>日期</span>
+                        <strong id="success-date"></strong>
+                    </div>
+
+                    <div class="booking-summary-row">
+                        <span>時間</span>
+                        <strong id="success-time"></strong>
+                    </div>
+
+                    <div class="booking-summary-row">
+                        <span>價格</span>
+                        <strong id="success-price"></strong>
+                    </div>
+
+                </div>
+
+                <p class="notification-message">
+                    設計師確認後，我們會透過 LINE 通知你。
+                </p>
+
+            </div>
+
+        </div>
+
+        <!-- 共用 Bottom Bar -->
+        <div class="bottom-bar">
+
+            <div>
+                <span class="summary-label">目前選擇</span>
+                <strong id="summary">請選擇服務</strong>
+            </div>
+
+            <button
+                id="next-button"
+                class="next-button"
+                type="button"
+                disabled
+            >
+                選擇日期
+            </button>
+
+        </div>
+
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

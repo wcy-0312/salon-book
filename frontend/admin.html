@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>SalonBook 管理</title>
+
+    <link
+        rel="stylesheet"
+        href="admin.css"
+    >
+</head>
+
+<body>
+
+    <main class="container">
+
+        <header class="header">
+            <div>
+                <h1>預約管理</h1>
+                <p>Andy · 髮型設計師</p>
+            </div>
+
+            <button
+                id="refresh-button"
+                type="button"
+                class="refresh-button"
+            >
+                重新整理
+            </button>
+        </header>
+
+
+        <section class="section">
+
+            <div class="section-header">
+
+                <h2>待確認預約</h2>
+
+                <span
+                    id="pending-count"
+                    class="count"
+                >
+                    0
+                </span>
+
+            </div>
+
+
+            <div
+                id="booking-list"
+                class="booking-list"
+            >
+                <p class="loading">
+                    載入中...
+                </p>
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <script src="admin.js"></script>
+
+</body>
+
+</html>

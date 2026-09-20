@@ -1,0 +1,176 @@
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: #f6f6f6;
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+    color: #222;
+}
+
+.container {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 32px 20px;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+}
+
+.header h1 {
+    margin: 0 0 6px;
+    font-size: 28px;
+}
+
+.header p {
+    margin: 0;
+    color: #777;
+}
+
+.refresh-button {
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 10px;
+    padding: 10px 14px;
+    cursor: pointer;
+}
+
+.section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.section-header h2 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 24px;
+    height: 24px;
+
+    padding: 0 7px;
+
+    border-radius: 999px;
+
+    background: #222;
+    color: white;
+
+    font-size: 13px;
+}
+
+.booking-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.booking-card {
+    display: grid;
+
+    grid-template-columns:
+        80px
+        1fr
+        auto;
+
+    gap: 18px;
+
+    align-items: center;
+
+    padding: 18px;
+
+    background: white;
+
+    border: 1px solid #e8e8e8;
+    border-radius: 14px;
+}
+
+.booking-time {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.booking-time strong {
+    font-size: 18px;
+}
+
+.booking-time span {
+    color: #666;
+}
+
+.booking-info h3 {
+    margin: 0 0 5px;
+    font-size: 17px;
+}
+
+.booking-info p {
+    margin: 3px 0;
+    color: #666;
+}
+
+.booking-info .phone {
+    font-size: 14px;
+}
+
+.booking-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.booking-actions button {
+    border-radius: 9px;
+    padding: 10px 14px;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.reject-button {
+    border: 1px solid #ddd;
+    background: white;
+}
+
+.confirm-button {
+    border: 1px solid #222;
+    background: #222;
+    color: white;
+}
+
+.loading,
+.empty {
+    text-align: center;
+    padding: 40px;
+    color: #888;
+}
+
+@media (max-width: 600px) {
+
+    .booking-card {
+        grid-template-columns:
+            65px
+            1fr;
+    }
+
+    .booking-actions {
+        grid-column:
+            1 / -1;
+
+        justify-content:
+            flex-end;
+    }
+}

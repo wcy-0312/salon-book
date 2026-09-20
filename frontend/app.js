@@ -272,11 +272,13 @@ nextButton.addEventListener("click", async (event) => {
 
 
             if (!response.ok) {
+                const errorData = await response.json();
 
                 throw new Error(
-                    `HTTP ${response.status}`
+                    `HTTP ${response.status}: ${
+                        errorData.detail ?? "Unknown error"
+                    }`
                 );
-
             }
 
 
@@ -313,7 +315,9 @@ nextButton.addEventListener("click", async (event) => {
                 error
             );
 
-            alert("預約送出失敗，請稍後再試。");
+            alert(
+                `預約送出失敗\n${error.message}`
+            );
 
             nextButton.disabled = false;
             nextButton.textContent = "送出預約";

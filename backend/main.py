@@ -287,6 +287,45 @@ def verify_line_id_token(id_token: str) -> dict:
 
     return response.json()
 
+
+def send_line_message(
+    line_user_id: str,
+    message: str,
+) -> None:
+    channel_access_token = os.getenv(
+        "LINE_CHANNEL_ACCESS_TOKEN"
+    )
+
+    if not channel_access_token:
+        raise HTTPException(
+            status_code=500,
+            detail="LINE_CHANNEL_ACCESS_TOKEN is not configured",
+        )
+
+    response = httpx.post(
+        "https://api.line.me/v2/bot/message/push",
+        headers={
+            "Authorization": f"Bearer {channel_access_token}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "to": line_user_id,
+            "messages": [
+                {
+                    "type": "text",
+                    "text": message,
+                }
+            ],
+        },
+        timeout=10.0,
+    )
+
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=502,
+            detail=f"LINE message failed: {response.text}",
+        )
+
 # =========================================================
 # Root
 # =========================================================
@@ -535,7 +574,7 @@ def create_booking(
 
             customer_name=data.customer_name,
             customer_phone=data.customer_phone,
-            
+
             line_user_id=line_user_id,
 
             start_at=data.start_at,
@@ -871,3 +910,17 @@ def authenticate_line(request: LineAuthRequest):
         line_user_id=payload["sub"],
         display_name=payload.get("name"),
     )
+
+
+@app.post("/test-line-message")
+def test_line_message(
+    line_user_id: str,
+):
+    send_line_message(
+        line_user_id,
+        "SalonBook 測試通知：LINE 訊息功能已成功連線！",
+    )
+
+    return {
+        "message": "LINE message sent",
+    }

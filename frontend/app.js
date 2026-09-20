@@ -227,11 +227,49 @@ nextButton.addEventListener("click", async (event) => {
 
                         start_at:
                             `${selectedDate}T${selectedTime}:00`,
-                            
+
                         id_token: lineIdToken,
                     }),
                 }
             );
+
+
+            if (response.status === 409) {
+
+                alert(
+                    "此時段剛剛已被其他人預約，請重新選擇時段。"
+                );
+
+                // 回到日期 / 時段頁面
+                bookingPage.classList.add("hidden");
+                datetimePage.classList.remove("hidden");
+
+                currentStep = 2;
+
+                // 原本選擇的時間失效
+                selectedTime = null;
+
+                nextButton.textContent = "請選擇時段";
+                nextButton.disabled = true;
+
+                summary.textContent =
+                    `${selectedService.name} · $${selectedService.price.toLocaleString()}`;
+
+                // 重新向後端取得最新 availability
+                const slots = await fetchAvailability(
+                    selectedDate
+                );
+
+                availableSlots[selectedDate] = slots;
+
+                renderTimeSlots(
+                    selectedDate
+                );
+
+                window.scrollTo(0, 0);
+
+                return;
+            }
 
 
             if (!response.ok) {

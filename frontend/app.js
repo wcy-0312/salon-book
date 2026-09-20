@@ -248,7 +248,7 @@ nextButton.addEventListener("click", async (event) => {
         try {
 
             const response = await fetch(
-                "${API_BASE_URL}/bookings",
+                `${API_BASE_URL}/bookings`,
                 {
                     method: "POST",
 
@@ -838,7 +838,7 @@ async function initializeLiff() {
         alert(
             `LINE 身分驗證成功\n${lineUser.display_name}`
         );
-        
+
         console.log(
             "LINE user:",
             profile.displayName

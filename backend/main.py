@@ -1,4 +1,5 @@
 import os
+import httpx
 from pathlib import Path
 from datetime import date, datetime, time, timedelta
 from enum import Enum
@@ -7,6 +8,7 @@ from enum import Enum
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Field, Session, SQLModel, create_engine, select
+from contextlib import asynccontextmanager
 
 
 # =========================================================
@@ -113,37 +115,18 @@ class AvailabilityResponse(SQLModel):
     slots: list[str]
 
 
-# =========================================================
-# FastAPI
-# =========================================================
-
-app = FastAPI(
-    title="SalonBook API"
-)
+class LineAuthRequest(SQLModel):
+    id_token: str
 
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+class LineAuthResponse(SQLModel):
+    line_user_id: str
+    display_name: str | None = None
 
 
 # =========================================================
-# Startup
+# Seed Data
 # =========================================================
-
-@app.on_event("startup")
-def startup():
-
-    # 建立不存在的 tables
-    SQLModel.metadata.create_all(engine)
-
-    # 建立初始資料
-    seed_data()
-
 
 def seed_data():
 
@@ -235,6 +218,42 @@ def seed_data():
 
 
         session.commit()
+
+
+# =========================================================
+# Lifespan
+# =========================================================
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+
+    # 建立不存在的 tables
+    SQLModel.metadata.create_all(engine)
+
+    # 建立初始資料
+    seed_data()
+
+    yield
+    # 關閉時執行
+    # 目前 SalonBook 沒東西需要寫
+
+# =========================================================
+# FastAPI
+# =========================================================
+
+app = FastAPI(
+    title="SalonBook API",
+    lifespan=lifespan,
+)
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 # =========================================================
@@ -800,3 +819,40 @@ def reject_booking(
         session.refresh(booking)
 
         return booking
+
+
+# =========================================================
+# LINE 驗證 endpoint
+# =========================================================
+
+@app.post("/auth/line", response_model=LineAuthResponse)
+def authenticate_line(request: LineAuthRequest):
+    channel_id = os.getenv("LINE_CHANNEL_ID")
+
+    if not channel_id:
+        raise HTTPException(
+            status_code=500,
+            detail="LINE_CHANNEL_ID is not configured",
+        )
+
+    response = httpx.post(
+        "https://api.line.me/oauth2/v2.1/verify",
+        data={
+            "id_token": request.id_token,
+            "client_id": channel_id,
+        },
+        timeout=10.0,
+    )
+
+    if response.status_code != 200:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid LINE ID token",
+        )
+
+    payload = response.json()
+
+    return LineAuthResponse(
+        line_user_id=payload["sub"],
+        display_name=payload.get("name"),
+    )

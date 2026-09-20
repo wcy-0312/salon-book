@@ -233,9 +233,6 @@ def seed_data():
 @asynccontextmanager
 async def lifespan(app: FastAPI):
 
-    # 建立不存在的 tables
-    SQLModel.metadata.create_all(engine)
-
     # 建立初始資料
     seed_data()
 

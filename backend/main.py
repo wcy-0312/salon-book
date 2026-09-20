@@ -825,9 +825,7 @@ def get_bookings(
 def confirm_booking(
     booking_id: int,
 ):
-
     with Session(engine) as session:
-
         booking = session.get(
             Booking,
             booking_id,
@@ -839,21 +837,37 @@ def confirm_booking(
                 detail="Booking not found",
             )
 
-
         if booking.status != BookingStatus.PENDING:
             raise HTTPException(
                 status_code=409,
                 detail="Only pending bookings can be confirmed",
             )
 
-
-        booking.status = (
-            BookingStatus.CONFIRMED
-        )
+        booking.status = BookingStatus.CONFIRMED
 
         session.add(booking)
         session.commit()
         session.refresh(booking)
+
+        # 預約是透過 LINE 建立的才發送通知
+        if booking.line_user_id:
+            staff = session.get(
+                Staff,
+                booking.staff_id,
+            )
+
+            send_line_message(
+                booking.line_user_id,
+                (
+                    "SalonBook 預約確認\n\n"
+                    "您的預約已確認！\n\n"
+                    f"設計師：{staff.name}\n"
+                    f"服務：{booking.service_name}\n"
+                    f"日期：{booking.start_at:%Y/%m/%d}\n"
+                    f"時間：{booking.start_at:%H:%M}\n"
+                    f"價格：${booking.price}"
+                ),
+            )
 
         return booking
 
@@ -865,9 +879,7 @@ def confirm_booking(
 def reject_booking(
     booking_id: int,
 ):
-
     with Session(engine) as session:
-
         booking = session.get(
             Booking,
             booking_id,
@@ -879,21 +891,37 @@ def reject_booking(
                 detail="Booking not found",
             )
 
-
         if booking.status != BookingStatus.PENDING:
             raise HTTPException(
                 status_code=409,
                 detail="Only pending bookings can be rejected",
             )
 
-
-        booking.status = (
-            BookingStatus.REJECTED
-        )
+        booking.status = BookingStatus.REJECTED
 
         session.add(booking)
         session.commit()
         session.refresh(booking)
+
+        # 預約是透過 LINE 建立的才發送通知
+        if booking.line_user_id:
+            staff = session.get(
+                Staff,
+                booking.staff_id,
+            )
+
+            send_line_message(
+                booking.line_user_id,
+                (
+                    "SalonBook 預約通知\n\n"
+                    "很抱歉，您的預約目前無法接受。\n\n"
+                    f"設計師：{staff.name}\n"
+                    f"服務：{booking.service_name}\n"
+                    f"日期：{booking.start_at:%Y/%m/%d}\n"
+                    f"時間：{booking.start_at:%H:%M}\n\n"
+                    "請重新選擇其他預約時段。"
+                ),
+            )
 
         return booking
 
@@ -912,15 +940,3 @@ def authenticate_line(request: LineAuthRequest):
     )
 
 
-@app.post("/test-line-message")
-def test_line_message(
-    line_user_id: str,
-):
-    send_line_message(
-        line_user_id,
-        "SalonBook 測試通知：LINE 訊息功能已成功連線！",
-    )
-
-    return {
-        "message": "LINE message sent",
-    }

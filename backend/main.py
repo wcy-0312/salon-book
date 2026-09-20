@@ -5,7 +5,7 @@ from datetime import date, datetime, time, timedelta
 from enum import Enum
 
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 from contextlib import asynccontextmanager
@@ -312,6 +312,26 @@ def verify_admin(id_token: str) -> dict:
         )
 
     return line_payload
+
+
+def require_admin(
+    authorization: str | None = Header(default=None),
+) -> dict:
+    if not authorization:
+        raise HTTPException(
+            status_code=401,
+            detail="Authorization header is required",
+        )
+
+    scheme, _, id_token = authorization.partition(" ")
+
+    if scheme.lower() != "bearer" or not id_token:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid authorization header",
+        )
+
+    return verify_admin(id_token)
 
 
 def send_line_message(
@@ -822,7 +842,9 @@ def get_availability(
 )
 def get_bookings(
     status: BookingStatus | None = None,
+    authorization: str | None = Header(default=None),
 ):
+    require_admin(authorization)
 
     with Session(engine) as session:
 
@@ -850,7 +872,10 @@ def get_bookings(
 )
 def confirm_booking(
     booking_id: int,
+    authorization: str | None = Header(default=None),
 ):
+    require_admin(authorization)
+
     with Session(engine) as session:
         booking = session.get(
             Booking,
@@ -904,7 +929,10 @@ def confirm_booking(
 )
 def reject_booking(
     booking_id: int,
+    authorization: str | None = Header(default=None),
 ):
+    require_admin(authorization)
+
     with Session(engine) as session:
         booking = session.get(
             Booking,

@@ -191,7 +191,6 @@ nextButton.addEventListener("click", async (event) => {
         currentStep = 2;
 
         renderCalendar();
-        initializeLiff();
 
         window.scrollTo(0, 0);
 
@@ -816,3 +815,5 @@ async function initializeLiff() {
         );
     }
 }
+
+initializeLiff();

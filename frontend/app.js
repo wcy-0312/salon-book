@@ -1,3 +1,5 @@
+const LIFF_ID = "2011675360-s1xEolBB";
+
 const servicePage = document.querySelector("#service-page");
 const datetimePage = document.querySelector("#datetime-page");
 
@@ -189,6 +191,7 @@ nextButton.addEventListener("click", async (event) => {
         currentStep = 2;
 
         renderCalendar();
+        initializeLiff();
 
         window.scrollTo(0, 0);
 
@@ -780,4 +783,43 @@ function formatDuration(minutes) {
 
     return `約 ${hours} 小時 ${remainingMinutes} 分鐘`;
 
+}
+
+
+async function initializeLiff() {
+    try {
+        await liff.init({
+            liffId: LIFF_ID,
+        });
+
+        console.log("LIFF initialized");
+
+        console.log(
+            "In LINE client:",
+            liff.isInClient()
+        );
+
+        console.log(
+            "Logged in:",
+            liff.isLoggedIn()
+        );
+
+        if (!liff.isLoggedIn()) {
+            liff.login();
+            return;
+        }
+
+        const profile = await liff.getProfile();
+
+        console.log(
+            "LINE profile:",
+            profile
+        );
+
+    } catch (error) {
+        console.error(
+            "LIFF initialization failed:",
+            error
+        );
+    }
 }

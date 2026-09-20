@@ -1,5 +1,8 @@
 const LIFF_ID = "2011675360-s1xEolBB";
 
+const API_BASE_URL =
+    "https://salon-book-production.up.railway.app";
+
 const servicePage = document.querySelector("#service-page");
 const datetimePage = document.querySelector("#datetime-page");
 
@@ -245,7 +248,7 @@ nextButton.addEventListener("click", async (event) => {
         try {
 
             const response = await fetch(
-                "http://127.0.0.1:8000/bookings",
+                "${API_BASE_URL}/bookings",
                 {
                     method: "POST",
 
@@ -684,7 +687,7 @@ async function fetchAvailability(dateString) {
     });
 
     const response = await fetch(
-        `http://127.0.0.1:8000/availability?${params}`
+        `${API_BASE_URL}/availability?${params}`
     );
 
     if (!response.ok) {

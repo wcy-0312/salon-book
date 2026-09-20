@@ -437,22 +437,6 @@ def get_services():
 
         return services
 
-
-# =========================================================
-# Schedules
-# =========================================================
-
-@app.get("/schedules")
-def get_schedules():
-
-    with Session(engine) as session:
-
-        schedules = session.exec(
-            select(Schedule)
-        ).all()
-
-        return schedules
-
     
 # =========================================================
 # Bookings

@@ -466,6 +466,17 @@ def create_booking(
             detail="Booking must be made at least 1 hour in advance",
         )
 
+    maximum_booking_date = (
+        datetime.now().date()
+        + timedelta(days=30)
+    )
+
+    if data.start_at.date() > maximum_booking_date:
+        raise HTTPException(
+            status_code=409,
+            detail="Booking can only be made within 30 days",
+        )
+    
     with Session(engine) as session:
 
         # -------------------------
@@ -676,6 +687,19 @@ def get_availability(
     target_date: date,
 ):
 
+    maximum_booking_date = (
+        datetime.now().date()
+        + timedelta(days=30)
+    )
+
+    if target_date > maximum_booking_date:
+        return AvailabilityResponse(
+            date=target_date,
+            staff_id=staff_id,
+            service_id=service_id,
+            slots=[],
+        )
+    
     with Session(engine) as session:
 
         # -------------------------

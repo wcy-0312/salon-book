@@ -252,6 +252,13 @@ nextButton.addEventListener("click", async (event) => {
                     alert(
                         "預約需至少提前 1 小時，請重新選擇時段。"
                     );
+                } else if (
+                    errorData.detail ===
+                    "Booking can only be made within 30 days"
+                ) {
+                    alert(
+                        "目前僅開放未來 30 天內的預約，請重新選擇日期。"
+                    );
                 } else {
                     alert(
                         "此時段目前無法預約，請重新選擇時段。"
@@ -387,6 +394,12 @@ function renderCalendar() {
     const lastDay =
         new Date(currentYear, currentMonth + 1, 0);
 
+    const maximumBookingDate = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate() + 30
+    );
+
 
     /*
      * 月初之前補空格
@@ -442,7 +455,10 @@ function renderCalendar() {
                 today.getDate()
             );
 
-        if (date < todayStart) {
+        if (
+            date < todayStart ||
+            date > maximumBookingDate
+        ) {
             button.disabled = true;
             button.classList.add("disabled");
         }
@@ -476,6 +492,18 @@ function renderCalendar() {
             currentMonth === today.getMonth();
 
         previousMonthButton.disabled = isCurrentMonth;
+
+        const maximumMonth =
+            maximumBookingDate.getMonth();
+
+        const maximumYear =
+            maximumBookingDate.getFullYear();
+
+        const isMaximumMonth =
+            currentYear === maximumYear &&
+            currentMonth === maximumMonth;
+
+        nextMonthButton.disabled = isMaximumMonth;
 
     }
 

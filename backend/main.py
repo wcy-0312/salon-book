@@ -372,6 +372,21 @@ def send_line_message(
             detail=f"LINE message failed: {response.text}",
         )
 
+
+def try_send_line_message(
+    line_user_id: str,
+    message: str,
+) -> None:
+    try:
+        send_line_message(
+            line_user_id,
+            message,
+        )
+    except Exception as error:
+        print(
+            f"Failed to send LINE message: {error}"
+        )
+
 # =========================================================
 # Root
 # =========================================================
@@ -632,6 +647,20 @@ def create_booking(
         session.add(booking)
         session.commit()
         session.refresh(booking)
+
+        try_send_line_message(
+            booking.line_user_id,
+            (
+                "SalonBook 預約申請\n\n"
+                "您的預約申請已送出，目前等待設計師確認。\n\n"
+                f"設計師：{staff.name}\n"
+                f"服務：{booking.service_name}\n"
+                f"日期：{booking.start_at:%Y/%m/%d}\n"
+                f"時間：{booking.start_at:%H:%M}\n"
+                f"價格：${booking.price}\n\n"
+                "確認完成後，我們會再透過 LINE 通知您。"
+            ),
+        )
 
         return booking
 
@@ -907,7 +936,7 @@ def confirm_booking(
                 booking.staff_id,
             )
 
-            send_line_message(
+            try_send_line_message(
                 booking.line_user_id,
                 (
                     "SalonBook 預約確認\n\n"
@@ -964,7 +993,7 @@ def reject_booking(
                 booking.staff_id,
             )
 
-            send_line_message(
+            try_send_line_message(
                 booking.line_user_id,
                 (
                     "SalonBook 預約通知\n\n"

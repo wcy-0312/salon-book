@@ -785,6 +785,8 @@ function formatDuration(minutes) {
 }
 
 
+let lineIdToken = null;
+
 async function initializeLiff() {
     try {
         await liff.init({
@@ -798,20 +800,22 @@ async function initializeLiff() {
 
         const profile = await liff.getProfile();
 
-        console.log("LINE profile:", profile);
+        lineIdToken = liff.getIDToken();
 
-        alert(
-            `LINE 連線成功\n使用者：${profile.displayName}`
+        console.log(
+            "LINE user:",
+            profile.displayName
+        );
+
+        console.log(
+            "ID token available:",
+            Boolean(lineIdToken)
         );
 
     } catch (error) {
         console.error(
             "LIFF initialization failed:",
             error
-        );
-
-        alert(
-            `LINE 初始化失敗：${error.message}`
         );
     }
 }

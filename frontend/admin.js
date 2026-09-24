@@ -73,6 +73,32 @@ const scheduleList =
 const scheduleCount =
     document.querySelector("#schedule-count");
 
+const blockedTimeList =
+    document.querySelector("#blocked-time-list");
+
+const blockedTimeCount =
+    document.querySelector("#blocked-time-count");
+
+const blockedTimeForm =
+    document.querySelector("#blocked-time-form");
+
+const blockedTimeAllDay =
+    document.querySelector("#blocked-time-all-day");
+
+const blockedTimeRange =
+    document.querySelector("#blocked-time-range");
+
+const blockedTimeStart =
+    document.querySelector("#blocked-time-start");
+
+const blockedTimeEnd =
+    document.querySelector("#blocked-time-end");
+
+const blockedTimeReason =
+    document.querySelector("#blocked-time-reason");
+
+const STAFF_ID = 1;
+
 
 let selectedDate = new Date();
 
@@ -268,7 +294,300 @@ async function loadBookings() {
         scheduleList.innerHTML =
             '<p class="empty">無法載入當日行程</p>';
     }
+
+    await loadBlockedTimes();
 }
+
+
+/* =========================================
+   Blocked time
+========================================= */
+
+async function loadBlockedTimes() {
+
+    blockedTimeList.innerHTML =
+        '<p class="loading">載入中...</p>';
+
+    try {
+
+        const dateParam =
+            formatDateForInput(selectedDate);
+
+        const response = await fetch(
+            `${API_BASE_URL}/blocked-times?staff_id=${STAFF_ID}&date=${dateParam}`,
+            {
+                headers: {
+                    Authorization: `Bearer ${adminIdToken}`,
+                },
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `HTTP ${response.status}`
+            );
+        }
+
+        const blockedTimes =
+            await response.json();
+
+        renderBlockedTimes(blockedTimes);
+
+    } catch (error) {
+
+        console.error(
+            "Failed to load blocked times:",
+            error
+        );
+
+        blockedTimeList.innerHTML =
+            '<p class="empty">無法載入封鎖時段</p>';
+    }
+}
+
+
+function renderBlockedTimes(blockedTimes) {
+
+    blockedTimeList.innerHTML = "";
+
+    blockedTimeCount.textContent =
+        blockedTimes.length;
+
+
+    if (blockedTimes.length === 0) {
+
+        blockedTimeList.innerHTML =
+            '<p class="empty">當日尚無休假或封鎖時段</p>';
+
+        return;
+    }
+
+
+    blockedTimes.forEach((blockedTime) => {
+
+        const card =
+            document.createElement("article");
+
+        card.className =
+            "blocked-time-card";
+
+        const startAt =
+            new Date(blockedTime.start_at);
+
+        const endAt =
+            new Date(blockedTime.end_at);
+
+        const isAllDay =
+            (endAt - startAt) >= (24 * 60 * 60 * 1000);
+
+        const timeText = isAllDay
+            ? "整天休假"
+            : `${String(startAt.getHours()).padStart(2, "0")}:${String(startAt.getMinutes()).padStart(2, "0")} - ${String(endAt.getHours()).padStart(2, "0")}:${String(endAt.getMinutes()).padStart(2, "0")}`;
+
+        card.innerHTML = `
+            <div class="blocked-time-info">
+                <strong>${timeText}</strong>
+                ${blockedTime.reason ? `<span>${escapeHtml(blockedTime.reason)}</span>` : ""}
+            </div>
+
+            <button
+                type="button"
+                class="blocked-time-delete"
+                data-id="${blockedTime.id}"
+            >
+                刪除
+            </button>
+        `;
+
+        blockedTimeList.appendChild(card);
+
+    });
+
+    bindBlockedTimeActions();
+}
+
+
+function bindBlockedTimeActions() {
+
+    document
+        .querySelectorAll(".blocked-time-delete")
+        .forEach((button) => {
+
+            button.addEventListener(
+                "click",
+                async () => {
+
+                    const confirmed = window.confirm(
+                        "確定要刪除這筆休假 / 封鎖時段嗎？"
+                    );
+
+                    if (!confirmed) {
+                        return;
+                    }
+
+                    await deleteBlockedTime(
+                        button.dataset.id
+                    );
+
+                }
+            );
+
+        });
+}
+
+
+async function deleteBlockedTime(blockedTimeId) {
+
+    try {
+
+        const response = await fetch(
+            `${API_BASE_URL}/blocked-times/${blockedTimeId}`,
+            {
+                method: "DELETE",
+                headers: {
+                    Authorization: `Bearer ${adminIdToken}`,
+                },
+            }
+        );
+
+        if (!response.ok) {
+
+            const error =
+                await response.json();
+
+            throw new Error(
+                error.detail
+                ?? `HTTP ${response.status}`
+            );
+        }
+
+        await loadBlockedTimes();
+
+    } catch (error) {
+
+        console.error(
+            "Failed to delete blocked time:",
+            error
+        );
+
+        alert(
+            `刪除失敗：${error.message}`
+        );
+    }
+}
+
+
+blockedTimeAllDay.addEventListener(
+    "change",
+    () => {
+        blockedTimeRange.hidden =
+            blockedTimeAllDay.checked;
+
+        blockedTimeStart.required =
+            !blockedTimeAllDay.checked;
+
+        blockedTimeEnd.required =
+            !blockedTimeAllDay.checked;
+    }
+);
+
+
+blockedTimeForm.addEventListener(
+    "submit",
+    async (event) => {
+
+        event.preventDefault();
+
+        const dateParam =
+            formatDateForInput(selectedDate);
+
+        let startAt;
+        let endAt;
+
+        if (blockedTimeAllDay.checked) {
+
+            startAt =
+                `${dateParam}T00:00:00`;
+
+            const nextDay =
+                new Date(selectedDate);
+
+            nextDay.setDate(
+                nextDay.getDate() + 1
+            );
+
+            endAt =
+                `${formatDateForInput(nextDay)}T00:00:00`;
+
+        } else {
+
+            if (
+                !blockedTimeStart.value
+                || !blockedTimeEnd.value
+            ) {
+                return;
+            }
+
+            startAt =
+                `${dateParam}T${blockedTimeStart.value}:00`;
+
+            endAt =
+                `${dateParam}T${blockedTimeEnd.value}:00`;
+        }
+
+        try {
+
+            const response = await fetch(
+                `${API_BASE_URL}/blocked-times`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${adminIdToken}`,
+                    },
+                    body: JSON.stringify({
+                        staff_id: STAFF_ID,
+                        start_at: startAt,
+                        end_at: endAt,
+                        reason:
+                            blockedTimeReason.value.trim()
+                            || null,
+                    }),
+                }
+            );
+
+            if (!response.ok) {
+
+                const error =
+                    await response.json();
+
+                throw new Error(
+                    error.detail
+                    ?? `HTTP ${response.status}`
+                );
+            }
+
+            blockedTimeForm.reset();
+
+            blockedTimeRange.hidden = false;
+            blockedTimeStart.required = true;
+            blockedTimeEnd.required = true;
+
+            await loadBlockedTimes();
+
+        } catch (error) {
+
+            console.error(
+                "Failed to create blocked time:",
+                error
+            );
+
+            alert(
+                `新增失敗：${error.message}`
+            );
+        }
+    }
+);
 
 
 /* =========================================

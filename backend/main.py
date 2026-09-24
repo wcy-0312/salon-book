@@ -115,6 +115,21 @@ class Booking(SQLModel, table=True):
     reminder_sent_at: datetime | None = None
 
 
+class BlockedTime(SQLModel, table=True):
+    id: int | None = Field(default=None, primary_key=True)
+
+    staff_id: int
+
+    start_at: datetime
+    end_at: datetime
+
+    reason: str | None = None
+
+    created_at: datetime = Field(
+        default_factory=taipei_now
+    )
+
+
 class BookingCreate(SQLModel):
     staff_id: int
     service_id: str
@@ -124,6 +139,13 @@ class BookingCreate(SQLModel):
 
     start_at: datetime
     id_token: str
+
+
+class BlockedTimeCreate(SQLModel):
+    staff_id: int
+    start_at: datetime
+    end_at: datetime
+    reason: str | None = None
 
 
 class AvailabilityResponse(SQLModel):
@@ -824,6 +846,26 @@ def get_availability(
 
 
         # -------------------------
+        # 找出當天已有的 BlockedTime
+        # -------------------------
+
+        next_day_start = datetime.combine(
+            target_date + timedelta(days=1),
+            time.min,
+        )
+
+        blocked_times_statement = select(BlockedTime).where(
+            BlockedTime.staff_id == staff_id,
+            BlockedTime.start_at < next_day_start,
+            BlockedTime.end_at > day_start,
+        )
+
+        blocked_times = session.exec(
+            blocked_times_statement
+        ).all()
+
+
+        # -------------------------
         # 計算 Availability
         # -------------------------
 
@@ -885,6 +927,21 @@ def get_availability(
 
                     conflict = True
                     break
+
+
+            if not conflict:
+
+                for blocked_time in blocked_times:
+
+                    # 時間區間重疊
+                    if (
+                        candidate_start < blocked_time.end_at
+                        and
+                        candidate_end > blocked_time.start_at
+                    ):
+
+                        conflict = True
+                        break
 
 
             if not conflict:
@@ -1126,6 +1183,152 @@ def cancel_booking(
             )
 
         return booking
+
+
+# =========================================================
+# Blocked Time Management
+# =========================================================
+
+@app.get(
+    "/blocked-times",
+    response_model=list[BlockedTime],
+)
+def get_blocked_times(
+    staff_id: int,
+    date: date,
+    authorization: str | None = Header(default=None),
+):
+    require_admin(authorization)
+
+    with Session(engine) as session:
+
+        day_start = datetime.combine(
+            date,
+            time.min,
+        )
+
+        next_day_start = datetime.combine(
+            date + timedelta(days=1),
+            time.min,
+        )
+
+        statement = select(BlockedTime).where(
+            BlockedTime.staff_id == staff_id,
+            BlockedTime.start_at < next_day_start,
+            BlockedTime.end_at > day_start,
+        ).order_by(
+            BlockedTime.start_at
+        )
+
+        blocked_times = session.exec(
+            statement
+        ).all()
+
+        return blocked_times
+
+
+@app.post(
+    "/blocked-times",
+    response_model=BlockedTime,
+)
+def create_blocked_time(
+    data: BlockedTimeCreate,
+    authorization: str | None = Header(default=None),
+):
+    require_admin(authorization)
+
+    if data.end_at <= data.start_at:
+        raise HTTPException(
+            status_code=422,
+            detail="end_at must be after start_at",
+        )
+
+    with Session(engine) as session:
+
+        # -------------------------
+        # 檢查是否與現有 Booking 衝突
+        # -------------------------
+
+        booking_statement = select(Booking).where(
+            Booking.staff_id == data.staff_id,
+            Booking.status.in_([
+                BookingStatus.PENDING,
+                BookingStatus.CONFIRMED,
+            ]),
+        )
+
+        existing_bookings = session.exec(
+            booking_statement
+        ).all()
+
+        for existing_booking in existing_bookings:
+
+            existing_start = (
+                existing_booking.start_at
+            )
+
+            existing_end = (
+                existing_start
+                + timedelta(
+                    minutes=
+                    existing_booking.duration_minutes
+                )
+            )
+
+            # 時間區間重疊
+            if (
+                data.start_at < existing_end
+                and
+                data.end_at > existing_start
+            ):
+                raise HTTPException(
+                    status_code=409,
+                    detail="Blocked time conflicts with an existing booking",
+                )
+
+
+        # -------------------------
+        # 建立 BlockedTime
+        # -------------------------
+
+        blocked_time = BlockedTime(
+            staff_id=data.staff_id,
+            start_at=data.start_at,
+            end_at=data.end_at,
+            reason=data.reason,
+        )
+
+        session.add(blocked_time)
+        session.commit()
+        session.refresh(blocked_time)
+
+        return blocked_time
+
+
+@app.delete(
+    "/blocked-times/{blocked_time_id}",
+    status_code=204,
+)
+def delete_blocked_time(
+    blocked_time_id: int,
+    authorization: str | None = Header(default=None),
+):
+    require_admin(authorization)
+
+    with Session(engine) as session:
+        blocked_time = session.get(
+            BlockedTime,
+            blocked_time_id,
+        )
+
+        if blocked_time is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Blocked time not found",
+            )
+
+        session.delete(blocked_time)
+        session.commit()
 
 
 # =========================================================

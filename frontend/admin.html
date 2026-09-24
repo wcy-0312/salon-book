@@ -131,6 +131,91 @@
 
         </section>
 
+
+        <!-- 休假 / 封鎖時段 -->
+        <section class="section">
+
+            <div class="section-header">
+
+                <h2>休假 / 封鎖時段</h2>
+
+                <span
+                    id="blocked-time-count"
+                    class="count count-secondary"
+                >
+                    0
+                </span>
+
+            </div>
+
+            <div
+                id="blocked-time-list"
+                class="blocked-time-list"
+            >
+                <p class="loading">
+                    載入中...
+                </p>
+            </div>
+
+            <form
+                id="blocked-time-form"
+                class="blocked-time-form"
+            >
+
+                <label class="blocked-time-field blocked-time-field-checkbox">
+                    <input
+                        id="blocked-time-all-day"
+                        type="checkbox"
+                    >
+                    整天休假
+                </label>
+
+                <div
+                    id="blocked-time-range"
+                    class="blocked-time-range"
+                >
+
+                    <label class="blocked-time-field">
+                        開始
+                        <input
+                            id="blocked-time-start"
+                            type="time"
+                            required
+                        >
+                    </label>
+
+                    <label class="blocked-time-field">
+                        結束
+                        <input
+                            id="blocked-time-end"
+                            type="time"
+                            required
+                        >
+                    </label>
+
+                </div>
+
+                <label class="blocked-time-field">
+                    原因（選填）
+                    <input
+                        id="blocked-time-reason"
+                        type="text"
+                        maxlength="100"
+                        placeholder="例如：外出進修"
+                    >
+                </label>
+
+                <button
+                    type="submit"
+                    class="blocked-time-submit"
+                >
+                    新增封鎖時段
+                </button>
+
+            </form>
+
+        </section>
+
     </main>
 
     

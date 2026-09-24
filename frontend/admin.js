@@ -441,12 +441,61 @@ function renderSchedule(bookings) {
                 </p>
 
             </div>
+
+
+            <div class="booking-actions">
+
+                <button
+                    type="button"
+                    class="reject-button cancel-button"
+                    data-id="${booking.id}"
+                >
+                    取消預約
+                </button>
+
+            </div>
         `;
 
 
         scheduleList.appendChild(card);
 
     });
+
+    bindScheduleActions();
+}
+
+
+/* =========================================
+   Schedule buttons
+========================================= */
+
+function bindScheduleActions() {
+
+    document
+        .querySelectorAll(".cancel-button")
+        .forEach((button) => {
+
+            button.addEventListener(
+                "click",
+                async () => {
+
+                    const confirmed = window.confirm(
+                        "確定要取消這筆預約嗎？此操作無法復原，且會通知客人。"
+                    );
+
+                    if (!confirmed) {
+                        return;
+                    }
+
+                    await updateBooking(
+                        button.dataset.id,
+                        "cancel"
+                    );
+
+                }
+            );
+
+        });
 }
 
 

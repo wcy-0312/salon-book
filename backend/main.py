@@ -1072,6 +1072,62 @@ def reject_booking(
         return booking
 
 
+@app.patch(
+    "/bookings/{booking_id}/cancel",
+    response_model=Booking,
+)
+def cancel_booking(
+    booking_id: int,
+    authorization: str | None = Header(default=None),
+):
+    require_admin(authorization)
+
+    with Session(engine) as session:
+        booking = session.get(
+            Booking,
+            booking_id,
+        )
+
+        if booking is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Booking not found",
+            )
+
+        if booking.status != BookingStatus.CONFIRMED:
+            raise HTTPException(
+                status_code=409,
+                detail="Only confirmed bookings can be cancelled",
+            )
+
+        booking.status = BookingStatus.CANCELLED
+
+        session.add(booking)
+        session.commit()
+        session.refresh(booking)
+
+        # 預約是透過 LINE 建立的才發送通知
+        if booking.line_user_id:
+            staff = session.get(
+                Staff,
+                booking.staff_id,
+            )
+
+            try_send_line_message(
+                booking.line_user_id,
+                (
+                    "SalonBook 預約通知\n\n"
+                    "您的預約已取消。\n\n"
+                    f"設計師：{staff.name}\n"
+                    f"服務：{booking.service_name}\n"
+                    f"日期：{booking.start_at:%Y/%m/%d}\n"
+                    f"時間：{booking.start_at:%H:%M}"
+                ),
+            )
+
+        return booking
+
+
 # =========================================================
 # LINE 驗證 endpoint
 # =========================================================

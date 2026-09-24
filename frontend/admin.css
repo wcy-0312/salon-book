@@ -430,76 +430,10 @@ button {
 
 
 /* =========================================
-   Blocked time
+   Leave calendar
 ========================================= */
 
-.blocked-time-list {
-    display: flex;
-    flex-direction: column;
-
-    gap: 10px;
-
-    margin-bottom: 14px;
-}
-
-.blocked-time-card {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
-    gap: 12px;
-
-    padding: 14px 16px;
-
-    background: #ffffff;
-
-    border: 1px solid #e8e8e4;
-    border-radius: 12px;
-}
-
-.blocked-time-info strong {
-    display: block;
-
-    font-size: 14px;
-    font-weight: 650;
-}
-
-.blocked-time-info span {
-    color: #777;
-    font-size: 13px;
-}
-
-.blocked-time-delete {
-    min-height: 36px;
-
-    padding: 7px 12px;
-
-    border: 1px solid #dededb;
-    border-radius: 9px;
-
-    background: #ffffff;
-    color: #666;
-
-    font-size: 13px;
-    font-weight: 600;
-
-    cursor: pointer;
-
-    transition:
-        background 0.15s ease,
-        border-color 0.15s ease;
-}
-
-.blocked-time-delete:hover {
-    background: #f4f4f1;
-}
-
-.blocked-time-form {
-    display: flex;
-    flex-direction: column;
-
-    gap: 12px;
-
+.calendar {
     padding: 16px;
 
     background: #ffffff;
@@ -508,64 +442,98 @@ button {
     border-radius: 14px;
 }
 
-.blocked-time-field {
-    display: flex;
-    flex-direction: column;
+.calendar-header {
+    display: grid;
+    grid-template-columns: 38px 1fr 38px;
 
-    gap: 6px;
-
-    color: #555;
-    font-size: 13px;
-    font-weight: 600;
-}
-
-.blocked-time-field input {
-    padding: 9px 11px;
-
-    border: 1px solid #dededb;
-    border-radius: 9px;
-
-    font: inherit;
-    font-weight: 400;
-
-    color: #202020;
-}
-
-.blocked-time-field-checkbox {
-    flex-direction: row;
     align-items: center;
 
-    gap: 8px;
+    margin-bottom: 14px;
 }
 
-.blocked-time-range {
+.calendar-header strong {
+    text-align: center;
+
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.calendar-weekdays {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(7, 1fr);
 
-    gap: 12px;
+    margin-bottom: 6px;
+
+    color: #999;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
 }
 
-.blocked-time-submit {
-    min-height: 42px;
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
 
-    padding: 10px 13px;
+    gap: 4px;
+}
 
-    border: 1px solid #242424;
-    border-radius: 9px;
+.calendar-day {
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
-    background: #242424;
-    color: #ffffff;
+    aspect-ratio: 1;
+
+    border: 1px solid transparent;
+    border-radius: 10px;
+
+    background: none;
 
     font-size: 14px;
-    font-weight: 600;
+    color: #202020;
 
     cursor: pointer;
 
-    transition: background 0.15s ease;
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease;
 }
 
-.blocked-time-submit:hover {
-    background: #3a3a3a;
+.calendar-day:hover {
+    background: #f4f4f1;
+}
+
+.calendar-day:disabled {
+    color: #cccccc;
+    cursor: default;
+}
+
+.calendar-day:disabled:hover {
+    background: none;
+}
+
+.calendar-day-empty {
+    visibility: hidden;
+}
+
+.calendar-day-off {
+    background: #fdeceb;
+    border-color: #f3c8c4;
+    color: #c0392b;
+    font-weight: 700;
+}
+
+.calendar-day-off:hover {
+    background: #fbe0dd;
+}
+
+.calendar-hint {
+    margin: 14px 0 0;
+
+    text-align: center;
+
+    color: #999;
+    font-size: 13px;
 }
 
 

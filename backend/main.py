@@ -1195,27 +1195,41 @@ def cancel_booking(
 )
 def get_blocked_times(
     staff_id: int,
-    date: date,
+    date: date | None = None,
+    start_date: date | None = None,
+    end_date: date | None = None,
     authorization: str | None = Header(default=None),
 ):
     require_admin(authorization)
 
+    if date is not None:
+        range_start = date
+        range_end = date
+    elif start_date is not None and end_date is not None:
+        range_start = start_date
+        range_end = end_date
+    else:
+        raise HTTPException(
+            status_code=422,
+            detail="Either date, or both start_date and end_date, are required",
+        )
+
     with Session(engine) as session:
 
-        day_start = datetime.combine(
-            date,
+        range_start_at = datetime.combine(
+            range_start,
             time.min,
         )
 
-        next_day_start = datetime.combine(
-            date + timedelta(days=1),
+        range_end_at = datetime.combine(
+            range_end + timedelta(days=1),
             time.min,
         )
 
         statement = select(BlockedTime).where(
             BlockedTime.staff_id == staff_id,
-            BlockedTime.start_at < next_day_start,
-            BlockedTime.end_at > day_start,
+            BlockedTime.start_at < range_end_at,
+            BlockedTime.end_at > range_start_at,
         ).order_by(
             BlockedTime.start_at
         )

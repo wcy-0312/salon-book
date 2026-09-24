@@ -132,87 +132,63 @@
         </section>
 
 
-        <!-- 休假 / 封鎖時段 -->
+        <!-- 休假管理 -->
         <section class="section">
 
             <div class="section-header">
-
-                <h2>休假 / 封鎖時段</h2>
-
-                <span
-                    id="blocked-time-count"
-                    class="count count-secondary"
-                >
-                    0
-                </span>
-
+                <h2>休假管理</h2>
             </div>
 
-            <div
-                id="blocked-time-list"
-                class="blocked-time-list"
-            >
-                <p class="loading">
-                    載入中...
-                </p>
-            </div>
+            <div class="calendar">
 
-            <form
-                id="blocked-time-form"
-                class="blocked-time-form"
-            >
+                <div class="calendar-header">
 
-                <label class="blocked-time-field blocked-time-field-checkbox">
-                    <input
-                        id="blocked-time-all-day"
-                        type="checkbox"
+                    <button
+                        id="calendar-prev-month"
+                        type="button"
+                        class="date-button"
                     >
-                    整天休假
-                </label>
+                        ‹
+                    </button>
 
-                <div
-                    id="blocked-time-range"
-                    class="blocked-time-range"
-                >
+                    <strong id="calendar-month-label">
+                        --
+                    </strong>
 
-                    <label class="blocked-time-field">
-                        開始
-                        <input
-                            id="blocked-time-start"
-                            type="time"
-                            required
-                        >
-                    </label>
-
-                    <label class="blocked-time-field">
-                        結束
-                        <input
-                            id="blocked-time-end"
-                            type="time"
-                            required
-                        >
-                    </label>
+                    <button
+                        id="calendar-next-month"
+                        type="button"
+                        class="date-button"
+                    >
+                        ›
+                    </button>
 
                 </div>
 
-                <label class="blocked-time-field">
-                    原因（選填）
-                    <input
-                        id="blocked-time-reason"
-                        type="text"
-                        maxlength="100"
-                        placeholder="例如：外出進修"
-                    >
-                </label>
+                <div class="calendar-weekdays">
+                    <span>日</span>
+                    <span>一</span>
+                    <span>二</span>
+                    <span>三</span>
+                    <span>四</span>
+                    <span>五</span>
+                    <span>六</span>
+                </div>
 
-                <button
-                    type="submit"
-                    class="blocked-time-submit"
+                <div
+                    id="calendar-grid"
+                    class="calendar-grid"
                 >
-                    新增封鎖時段
-                </button>
+                    <p class="loading">
+                        載入中...
+                    </p>
+                </div>
 
-            </form>
+                <p class="calendar-hint">
+                    點擊日期即可設定或取消休假
+                </p>
+
+            </div>
 
         </section>
 

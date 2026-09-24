@@ -73,29 +73,17 @@ const scheduleList =
 const scheduleCount =
     document.querySelector("#schedule-count");
 
-const blockedTimeList =
-    document.querySelector("#blocked-time-list");
+const calendarPrevMonthButton =
+    document.querySelector("#calendar-prev-month");
 
-const blockedTimeCount =
-    document.querySelector("#blocked-time-count");
+const calendarNextMonthButton =
+    document.querySelector("#calendar-next-month");
 
-const blockedTimeForm =
-    document.querySelector("#blocked-time-form");
+const calendarMonthLabel =
+    document.querySelector("#calendar-month-label");
 
-const blockedTimeAllDay =
-    document.querySelector("#blocked-time-all-day");
-
-const blockedTimeRange =
-    document.querySelector("#blocked-time-range");
-
-const blockedTimeStart =
-    document.querySelector("#blocked-time-start");
-
-const blockedTimeEnd =
-    document.querySelector("#blocked-time-end");
-
-const blockedTimeReason =
-    document.querySelector("#blocked-time-reason");
+const calendarGrid =
+    document.querySelector("#calendar-grid");
 
 const STAFF_ID = 1;
 
@@ -294,27 +282,51 @@ async function loadBookings() {
         scheduleList.innerHTML =
             '<p class="empty">無法載入當日行程</p>';
     }
-
-    await loadBlockedTimes();
 }
 
 
 /* =========================================
-   Blocked time
+   Leave calendar
 ========================================= */
 
-async function loadBlockedTimes() {
+let calendarMonth = new Date(
+    selectedDate.getFullYear(),
+    selectedDate.getMonth(),
+    1
+);
 
-    blockedTimeList.innerHTML =
+let dayOffMap = new Map();
+
+
+function formatMonthLabel(date) {
+    return `${date.getFullYear()} 年 ${date.getMonth() + 1} 月`;
+}
+
+
+async function loadCalendarMonth() {
+
+    calendarMonthLabel.textContent =
+        formatMonthLabel(calendarMonth);
+
+    calendarGrid.innerHTML =
         '<p class="loading">載入中...</p>';
+
+    const monthStart = new Date(
+        calendarMonth.getFullYear(),
+        calendarMonth.getMonth(),
+        1
+    );
+
+    const monthEnd = new Date(
+        calendarMonth.getFullYear(),
+        calendarMonth.getMonth() + 1,
+        0
+    );
 
     try {
 
-        const dateParam =
-            formatDateForInput(selectedDate);
-
         const response = await fetch(
-            `${API_BASE_URL}/blocked-times?staff_id=${STAFF_ID}&date=${dateParam}`,
+            `${API_BASE_URL}/blocked-times?staff_id=${STAFF_ID}&start_date=${formatDateForInput(monthStart)}&end_date=${formatDateForInput(monthEnd)}`,
             {
                 headers: {
                     Authorization: `Bearer ${adminIdToken}`,
@@ -331,228 +343,121 @@ async function loadBlockedTimes() {
         const blockedTimes =
             await response.json();
 
-        renderBlockedTimes(blockedTimes);
+        dayOffMap = new Map();
 
-    } catch (error) {
+        blockedTimes.forEach((blockedTime) => {
+            const dayKey =
+                formatDateForInput(
+                    new Date(blockedTime.start_at)
+                );
 
-        console.error(
-            "Failed to load blocked times:",
-            error
-        );
-
-        blockedTimeList.innerHTML =
-            '<p class="empty">無法載入封鎖時段</p>';
-    }
-}
-
-
-function renderBlockedTimes(blockedTimes) {
-
-    blockedTimeList.innerHTML = "";
-
-    blockedTimeCount.textContent =
-        blockedTimes.length;
-
-
-    if (blockedTimes.length === 0) {
-
-        blockedTimeList.innerHTML =
-            '<p class="empty">當日尚無休假或封鎖時段</p>';
-
-        return;
-    }
-
-
-    blockedTimes.forEach((blockedTime) => {
-
-        const card =
-            document.createElement("article");
-
-        card.className =
-            "blocked-time-card";
-
-        const startAt =
-            new Date(blockedTime.start_at);
-
-        const endAt =
-            new Date(blockedTime.end_at);
-
-        const isAllDay =
-            (endAt - startAt) >= (24 * 60 * 60 * 1000);
-
-        const timeText = isAllDay
-            ? "整天休假"
-            : `${String(startAt.getHours()).padStart(2, "0")}:${String(startAt.getMinutes()).padStart(2, "0")} - ${String(endAt.getHours()).padStart(2, "0")}:${String(endAt.getMinutes()).padStart(2, "0")}`;
-
-        card.innerHTML = `
-            <div class="blocked-time-info">
-                <strong>${timeText}</strong>
-                ${blockedTime.reason ? `<span>${escapeHtml(blockedTime.reason)}</span>` : ""}
-            </div>
-
-            <button
-                type="button"
-                class="blocked-time-delete"
-                data-id="${blockedTime.id}"
-            >
-                刪除
-            </button>
-        `;
-
-        blockedTimeList.appendChild(card);
-
-    });
-
-    bindBlockedTimeActions();
-}
-
-
-function bindBlockedTimeActions() {
-
-    document
-        .querySelectorAll(".blocked-time-delete")
-        .forEach((button) => {
-
-            button.addEventListener(
-                "click",
-                async () => {
-
-                    const confirmed = window.confirm(
-                        "確定要刪除這筆休假 / 封鎖時段嗎？"
-                    );
-
-                    if (!confirmed) {
-                        return;
-                    }
-
-                    await deleteBlockedTime(
-                        button.dataset.id
-                    );
-
-                }
-            );
-
+            dayOffMap.set(dayKey, blockedTime.id);
         });
-}
 
-
-async function deleteBlockedTime(blockedTimeId) {
-
-    try {
-
-        const response = await fetch(
-            `${API_BASE_URL}/blocked-times/${blockedTimeId}`,
-            {
-                method: "DELETE",
-                headers: {
-                    Authorization: `Bearer ${adminIdToken}`,
-                },
-            }
-        );
-
-        if (!response.ok) {
-
-            const error =
-                await response.json();
-
-            throw new Error(
-                error.detail
-                ?? `HTTP ${response.status}`
-            );
-        }
-
-        await loadBlockedTimes();
+        renderCalendar(monthStart, monthEnd);
 
     } catch (error) {
 
         console.error(
-            "Failed to delete blocked time:",
+            "Failed to load leave calendar:",
             error
         );
 
-        alert(
-            `刪除失敗：${error.message}`
-        );
+        calendarGrid.innerHTML =
+            '<p class="empty">無法載入休假資料</p>';
     }
 }
 
 
-blockedTimeAllDay.addEventListener(
-    "change",
-    () => {
-        blockedTimeRange.hidden =
-            blockedTimeAllDay.checked;
+function renderCalendar(monthStart, monthEnd) {
 
-        blockedTimeStart.required =
-            !blockedTimeAllDay.checked;
+    calendarGrid.innerHTML = "";
 
-        blockedTimeEnd.required =
-            !blockedTimeAllDay.checked;
+    const leadingBlanks =
+        monthStart.getDay();
+
+    for (let i = 0; i < leadingBlanks; i++) {
+
+        const blank =
+            document.createElement("span");
+
+        blank.className =
+            "calendar-day calendar-day-empty";
+
+        calendarGrid.appendChild(blank);
     }
-);
 
+    const today = new Date();
 
-blockedTimeForm.addEventListener(
-    "submit",
-    async (event) => {
+    today.setHours(0, 0, 0, 0);
 
-        event.preventDefault();
+    for (
+        let day = 1;
+        day <= monthEnd.getDate();
+        day++
+    ) {
 
-        const dateParam =
-            formatDateForInput(selectedDate);
+        const date = new Date(
+            calendarMonth.getFullYear(),
+            calendarMonth.getMonth(),
+            day
+        );
 
-        let startAt;
-        let endAt;
+        const dayKey =
+            formatDateForInput(date);
 
-        if (blockedTimeAllDay.checked) {
+        const isDayOff =
+            dayOffMap.has(dayKey);
 
-            startAt =
-                `${dateParam}T00:00:00`;
+        const button =
+            document.createElement("button");
 
-            const nextDay =
-                new Date(selectedDate);
+        button.type = "button";
 
-            nextDay.setDate(
-                nextDay.getDate() + 1
-            );
+        button.className = isDayOff
+            ? "calendar-day calendar-day-off"
+            : "calendar-day";
 
-            endAt =
-                `${formatDateForInput(nextDay)}T00:00:00`;
+        button.textContent = day;
 
-        } else {
+        button.dataset.date = dayKey;
 
-            if (
-                !blockedTimeStart.value
-                || !blockedTimeEnd.value
-            ) {
-                return;
+        button.addEventListener(
+            "click",
+            () => {
+                toggleDayOff(dayKey, isDayOff);
             }
+        );
 
-            startAt =
-                `${dateParam}T${blockedTimeStart.value}:00`;
+        calendarGrid.appendChild(button);
+    }
+}
 
-            endAt =
-                `${dateParam}T${blockedTimeEnd.value}:00`;
+
+async function toggleDayOff(dayKey, isCurrentlyOff) {
+
+    if (isCurrentlyOff) {
+
+        const confirmed = window.confirm(
+            `確定要取消 ${dayKey} 的休假嗎？`
+        );
+
+        if (!confirmed) {
+            return;
         }
+
+        const blockedTimeId =
+            dayOffMap.get(dayKey);
 
         try {
 
             const response = await fetch(
-                `${API_BASE_URL}/blocked-times`,
+                `${API_BASE_URL}/blocked-times/${blockedTimeId}`,
                 {
-                    method: "POST",
+                    method: "DELETE",
                     headers: {
-                        "Content-Type": "application/json",
                         Authorization: `Bearer ${adminIdToken}`,
                     },
-                    body: JSON.stringify({
-                        staff_id: STAFF_ID,
-                        start_at: startAt,
-                        end_at: endAt,
-                        reason:
-                            blockedTimeReason.value.trim()
-                            || null,
-                    }),
                 }
             );
 
@@ -567,25 +472,119 @@ blockedTimeForm.addEventListener(
                 );
             }
 
-            blockedTimeForm.reset();
-
-            blockedTimeRange.hidden = false;
-            blockedTimeStart.required = true;
-            blockedTimeEnd.required = true;
-
-            await loadBlockedTimes();
+            await loadCalendarMonth();
 
         } catch (error) {
 
             console.error(
-                "Failed to create blocked time:",
+                "Failed to cancel day off:",
                 error
             );
 
             alert(
-                `新增失敗：${error.message}`
+                `取消休假失敗：${error.message}`
             );
         }
+
+        return;
+    }
+
+    const confirmed = window.confirm(
+        `確定要將 ${dayKey} 設為休假嗎？`
+    );
+
+    if (!confirmed) {
+        return;
+    }
+
+    const [year, month, day] =
+        dayKey.split("-").map(Number);
+
+    const startAt = new Date(
+        year,
+        month - 1,
+        day
+    );
+
+    const nextDay = new Date(startAt);
+
+    nextDay.setDate(nextDay.getDate() + 1);
+
+    try {
+
+        const response = await fetch(
+            `${API_BASE_URL}/blocked-times`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${adminIdToken}`,
+                },
+                body: JSON.stringify({
+                    staff_id: STAFF_ID,
+                    start_at: `${dayKey}T00:00:00`,
+                    end_at: `${formatDateForInput(nextDay)}T00:00:00`,
+                }),
+            }
+        );
+
+        if (!response.ok) {
+
+            const error =
+                await response.json();
+
+            if (response.status === 409) {
+                throw new Error(
+                    "當天已有客人預約，請先確認或取消該預約後再設定休假"
+                );
+            }
+
+            throw new Error(
+                error.detail
+                ?? `HTTP ${response.status}`
+            );
+        }
+
+        await loadCalendarMonth();
+
+    } catch (error) {
+
+        console.error(
+            "Failed to set day off:",
+            error
+        );
+
+        alert(
+            `設定休假失敗：${error.message}`
+        );
+    }
+}
+
+
+calendarPrevMonthButton.addEventListener(
+    "click",
+    () => {
+        calendarMonth = new Date(
+            calendarMonth.getFullYear(),
+            calendarMonth.getMonth() - 1,
+            1
+        );
+
+        loadCalendarMonth();
+    }
+);
+
+
+calendarNextMonthButton.addEventListener(
+    "click",
+    () => {
+        calendarMonth = new Date(
+            calendarMonth.getFullYear(),
+            calendarMonth.getMonth() + 1,
+            1
+        );
+
+        loadCalendarMonth();
     }
 );
 
@@ -953,6 +952,7 @@ async function initializeAdmin() {
         }
 
         await loadBookings();
+        await loadCalendarMonth();
 
     } catch (error) {
         console.error(

@@ -23,8 +23,8 @@
 
         <header class="header">
             <div>
-                <h1>預約管理</h1>
-                <p>Andy · 髮型設計師</p>
+                <h1>SalonBook</h1>
+                <p>Andy · 預約管理</p>
             </div>
 
             <button
@@ -37,6 +37,46 @@
         </header>
 
 
+        <!-- 日期導覽 -->
+        <section class="date-navigation">
+
+            <button
+                id="previous-date-button"
+                type="button"
+                class="date-button"
+            >
+                ‹
+            </button>
+
+            <div
+                id="date-picker-button"
+                class="current-date"
+                role="button"
+                tabindex="0"
+            >
+                <strong id="current-date-text">
+                    --
+                </strong>
+            </div>
+
+            <input
+                id="date-picker"
+                type="date"
+                hidden
+            >
+
+            <button
+                id="next-date-button"
+                type="button"
+                class="date-button"
+            >
+                ›
+            </button>
+
+        </section>
+
+
+        <!-- 待確認 -->
         <section class="section">
 
             <div class="section-header">
@@ -52,10 +92,37 @@
 
             </div>
 
-
             <div
                 id="booking-list"
                 class="booking-list"
+            >
+                <p class="loading">
+                    載入中...
+                </p>
+            </div>
+
+        </section>
+
+
+        <!-- 當日行程 -->
+        <section class="section schedule-section">
+
+            <div class="section-header">
+
+                <h2>今日行程</h2>
+
+                <span
+                    id="schedule-count"
+                    class="count count-secondary"
+                >
+                    0
+                </span>
+
+            </div>
+
+            <div
+                id="schedule-list"
+                class="schedule-list"
             >
                 <p class="loading">
                     載入中...

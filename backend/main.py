@@ -901,6 +901,7 @@ def get_availability(
 )
 def get_bookings(
     status: BookingStatus | None = None,
+    date: date | None = None,
     authorization: str | None = Header(default=None),
 ):
     require_admin(authorization)
@@ -912,6 +913,22 @@ def get_bookings(
         if status is not None:
             statement = statement.where(
                 Booking.status == status
+            )
+
+        if date is not None:
+            day_start = datetime.combine(
+                date,
+                time.min,
+            )
+
+            day_end = datetime.combine(
+                date,
+                time.max,
+            )
+
+            statement = statement.where(
+                Booking.start_at >= day_start,
+                Booking.start_at <= day_end,
             )
 
         statement = statement.order_by(

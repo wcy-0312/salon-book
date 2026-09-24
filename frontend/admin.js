@@ -52,40 +52,193 @@ const pendingCount =
 const refreshButton =
     document.querySelector("#refresh-button");
 
+const previousDateButton =
+    document.querySelector("#previous-date-button");
+
+const nextDateButton =
+    document.querySelector("#next-date-button");
+
+const currentDateText =
+    document.querySelector("#current-date-text");
+
+const datePickerButton =
+    document.querySelector("#date-picker-button");
+
+const datePicker =
+    document.querySelector("#date-picker");
+
+const scheduleList =
+    document.querySelector("#schedule-list");
+
+const scheduleCount =
+    document.querySelector("#schedule-count");
+
+
+let selectedDate = new Date();
+
+selectedDate.setHours(
+    0,
+    0,
+    0,
+    0
+);
+
+/* =========================================
+   Date navigation
+========================================= */
+
+function formatDateForInput(date) {
+    const year =
+        date.getFullYear();
+
+    const month =
+        String(date.getMonth() + 1)
+            .padStart(2, "0");
+
+    const day =
+        String(date.getDate())
+            .padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+}
+
+
+
+function updateDateDisplay() {
+    const weekdays = [
+        "日",
+        "一",
+        "二",
+        "三",
+        "四",
+        "五",
+        "六",
+    ];
+
+    const month =
+        selectedDate.getMonth() + 1;
+
+    const day =
+        selectedDate.getDate();
+
+    const weekday =
+        weekdays[selectedDate.getDay()];
+
+    currentDateText.textContent =
+        `${month}/${day}（${weekday}）`;
+
+    datePicker.value =
+        formatDateForInput(selectedDate);
+}
+
+
+function changeSelectedDate(days) {
+    selectedDate.setDate(
+        selectedDate.getDate() + days
+    );
+
+    updateDateDisplay();
+    loadBookings();
+}
+
+
+previousDateButton.addEventListener(
+    "click",
+    () => {
+        changeSelectedDate(-1);
+    }
+);
+
+
+nextDateButton.addEventListener(
+    "click",
+    () => {
+        changeSelectedDate(1);
+    }
+);
+
+
+datePickerButton.addEventListener(
+    "click",
+    () => {
+        if (datePicker.showPicker) {
+            datePicker.showPicker();
+        } else {
+            datePicker.click();
+        }
+    }
+);
+
+
+datePicker.addEventListener(
+    "change",
+    () => {
+        if (!datePicker.value) {
+            return;
+        }
+
+        const [
+            year,
+            month,
+            day,
+        ] = datePicker.value
+            .split("-")
+            .map(Number);
+
+        selectedDate =
+            new Date(
+                year,
+                month - 1,
+                day
+            );
+
+        updateDateDisplay();
+        loadBookings();
+    }
+);
+
 
 /* =========================================
    Load bookings
 ========================================= */
+
+async function fetchBookings(status) {
+    const dateParam =
+        formatDateForInput(selectedDate);
+
+    const response = await fetch(
+        `${API_BASE_URL}/bookings?status=${status}&date=${dateParam}`,
+        {
+            headers: {
+                Authorization: `Bearer ${adminIdToken}`,
+            },
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error(
+            `HTTP ${response.status}`
+        );
+    }
+
+    return response.json();
+}
+
 
 async function loadBookings() {
 
     bookingList.innerHTML =
         '<p class="loading">載入中...</p>';
 
+    scheduleList.innerHTML =
+        '<p class="loading">載入中...</p>';
+
     try {
 
-        const response = await fetch(
-            `${API_BASE_URL}/bookings?status=pending`,
-            {
-                headers: {
-                    Authorization: `Bearer ${adminIdToken}`,
-                },
-            }
-        );
+        const pendingBookings =
+            await fetchBookings("pending");
 
-
-        if (!response.ok) {
-            throw new Error(
-                `HTTP ${response.status}`
-            );
-        }
-
-
-        const bookings =
-            await response.json();
-
-
-        renderBookings(bookings);
+        renderBookings(pendingBookings);
 
     } catch (error) {
 
@@ -96,6 +249,24 @@ async function loadBookings() {
 
         bookingList.innerHTML =
             '<p class="empty">無法載入預約資料</p>';
+    }
+
+    try {
+
+        const confirmedBookings =
+            await fetchBookings("confirmed");
+
+        renderSchedule(confirmedBookings);
+
+    } catch (error) {
+
+        console.error(
+            "Failed to load schedule:",
+            error
+        );
+
+        scheduleList.innerHTML =
+            '<p class="empty">無法載入當日行程</p>';
     }
 }
 
@@ -202,6 +373,80 @@ function renderBookings(bookings) {
 
 
     bindBookingActions();
+}
+
+
+/* =========================================
+   Render schedule
+========================================= */
+
+function renderSchedule(bookings) {
+
+    scheduleList.innerHTML = "";
+
+    scheduleCount.textContent =
+        bookings.length;
+
+
+    if (bookings.length === 0) {
+
+        scheduleList.innerHTML =
+            '<p class="empty">當日尚無已確認的預約</p>';
+
+        return;
+    }
+
+
+    bookings.forEach((booking) => {
+
+        const card =
+            document.createElement("article");
+
+        card.className =
+            "booking-card";
+
+
+        const date =
+            new Date(booking.start_at);
+
+
+        const timeText =
+            `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+
+
+        card.innerHTML = `
+            <div class="booking-time">
+
+                <strong>
+                    ${timeText}
+                </strong>
+
+            </div>
+
+
+            <div class="booking-info">
+
+                <h3>
+                    ${escapeHtml(booking.customer_name)}
+                </h3>
+
+                <p>
+                    ${escapeHtml(booking.service_name)}
+                    ·
+                    $${booking.price.toLocaleString()}
+                </p>
+
+                <p class="phone">
+                    ${escapeHtml(booking.customer_phone)}
+                </p>
+
+            </div>
+        `;
+
+
+        scheduleList.appendChild(card);
+
+    });
 }
 
 
@@ -351,5 +596,6 @@ async function initializeAdmin() {
             '<p class="empty">無法驗證管理員身分</p>';
     }
 }
+updateDateDisplay();
 
 initializeAdmin();

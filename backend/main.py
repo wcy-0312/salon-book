@@ -3,12 +3,28 @@ import httpx
 from pathlib import Path
 from datetime import date, datetime, time, timedelta
 from enum import Enum
+from zoneinfo import ZoneInfo
 
 
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 from contextlib import asynccontextmanager
+
+
+# =========================================================
+# Timezone
+# =========================================================
+# All datetime columns (start_at, created_at, reminder_sent_at) are
+# stored as naive datetimes that represent Asia/Taipei local time,
+# regardless of the server's own system timezone. `taipei_now()` must
+# be used instead of `datetime.now()` for any business-time logic.
+
+TAIPEI_TZ = ZoneInfo("Asia/Taipei")
+
+
+def taipei_now() -> datetime:
+    return datetime.now(TAIPEI_TZ).replace(tzinfo=None)
 
 
 # =========================================================
@@ -94,7 +110,7 @@ class Booking(SQLModel, table=True):
     start_at: datetime
     status: BookingStatus = BookingStatus.PENDING
     created_at: datetime = Field(
-        default_factory=datetime.now
+        default_factory=taipei_now
     )
     reminder_sent_at: datetime | None = None
 
@@ -456,7 +472,7 @@ def create_booking(
     line_user_id = line_payload["sub"]
 
     minimum_booking_time = (
-        datetime.now()
+        taipei_now()
         + timedelta(hours=1)
     )
 
@@ -467,7 +483,7 @@ def create_booking(
         )
 
     maximum_booking_date = (
-        datetime.now().date()
+        taipei_now().date()
         + timedelta(days=30)
     )
 
@@ -688,7 +704,7 @@ def get_availability(
 ):
 
     maximum_booking_date = (
-        datetime.now().date()
+        taipei_now().date()
         + timedelta(days=30)
     )
 
@@ -824,7 +840,7 @@ def get_availability(
         candidate_start = work_start
 
         minimum_booking_time = (
-            datetime.now()
+            taipei_now()
             + timedelta(hours=1)
         )
 

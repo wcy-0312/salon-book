@@ -1,5 +1,4 @@
-from datetime import date, datetime, timedelta
-from zoneinfo import ZoneInfo
+from datetime import timedelta
 
 from sqlmodel import Session, select
 
@@ -8,13 +7,12 @@ from backend.main import (
     BookingStatus,
     Staff,
     engine,
+    taipei_now,
     try_send_line_message,
 )
 
-TAIPEI_TZ = ZoneInfo("Asia/Taipei")
-
 def send_tomorrow_reminders():
-    now = datetime.now(TAIPEI_TZ)
+    now = taipei_now()
     tomorrow = now.date() + timedelta(days=1)
 
     with Session(engine) as session:
@@ -65,9 +63,7 @@ def send_tomorrow_reminders():
                 )
                 continue
 
-            booking.reminder_sent_at = datetime.now(
-                TAIPEI_TZ
-            ).replace(tzinfo=None)
+            booking.reminder_sent_at = taipei_now()
 
             session.add(booking)
             session.commit()

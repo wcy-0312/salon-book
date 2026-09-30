@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>SalonBook 行事曆</title>
+
+    <link
+        rel="stylesheet"
+        href="admin-app.css"
+    >
+</head>
+
+<body>
+
+    <main class="app-container">
+
+        <!-- 問候 + 設計師切換（與今日頁一致） -->
+        <header class="greeting-header">
+            <h1 class="brand-title">SalonBook</h1>
+
+            <div class="staff-switcher-v2">
+                <span class="staff-greeting-prefix">早安，</span>
+                <select id="staff-select">
+                    <option>載入中...</option>
+                </select>
+            </div>
+
+            <p class="staff-role" id="staff-role">髮型設計師</p>
+        </header>
+
+
+        <!-- 年 / 月 + 換週 -->
+        <div class="calendar-header-row">
+            <span class="calendar-month-label" id="calendar-month-label">--</span>
+
+            <div class="calendar-month-nav">
+                <button type="button" id="week-prev-button">
+                    <span class="icon" id="week-prev-icon"></span>
+                </button>
+                <button type="button" id="week-today-button">
+                    今天
+                </button>
+                <button type="button" id="week-next-button">
+                    <span class="icon" id="week-next-icon"></span>
+                </button>
+            </div>
+        </div>
+
+
+        <!-- 週選擇條 -->
+        <div
+            id="week-strip"
+            class="week-strip"
+        ></div>
+
+
+        <!-- 選定日期 + 新增不可預約時間入口 -->
+        <div class="calendar-selected-date-row">
+            <span class="calendar-selected-date" id="selected-date-label">--</span>
+
+            <a
+                id="add-blocked-time-button"
+                href="#"
+                class="calendar-add-button"
+                aria-label="新增不可預約時間"
+            >
+                <span class="icon" id="add-blocked-time-icon"></span>
+            </a>
+        </div>
+
+
+        <!-- 當天沒有營業時的提示 -->
+        <div
+            id="closed-banner"
+            class="calendar-closed-banner"
+            style="display: none;"
+        >
+            <span class="icon-badge size-md is-danger" style="background: var(--color-blocked-fg);">
+                <span class="icon icon-18" id="closed-banner-icon"></span>
+            </span>
+
+            <span class="calendar-closed-banner-body">
+                <div class="calendar-closed-banner-title">今天沒有營業時間</div>
+                <div class="calendar-closed-banner-subtitle" id="closed-banner-subtitle">尚未設定這天的營業時間</div>
+            </span>
+        </div>
+
+
+        <!-- 當日時間軸：Booking + BlockedTime -->
+        <div
+            id="daily-schedule-list"
+            class="timeline-list"
+        >
+            <p class="state-message">載入中...</p>
+        </div>
+
+    </main>
+
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+
+        <a
+            id="nav-today"
+            href="admin.html"
+            class="bottom-nav-item"
+        >
+            <span class="icon bottom-nav-icon" id="nav-today-icon"></span>
+            今日
+        </a>
+
+        <a
+            id="nav-calendar"
+            href="calendar.html"
+            class="bottom-nav-item is-active"
+        >
+            <span class="icon bottom-nav-icon" id="nav-calendar-icon"></span>
+            行事曆
+        </a>
+
+        <a
+            id="nav-services"
+            href="services.html"
+            class="bottom-nav-item"
+        >
+            <span class="icon bottom-nav-icon" id="nav-services-icon"></span>
+            服務
+        </a>
+
+        <a
+            id="nav-management"
+            href="staff.html"
+            class="bottom-nav-item"
+        >
+            <span class="icon bottom-nav-icon" id="nav-management-icon"></span>
+            管理
+        </a>
+
+    </nav>
+
+
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="icons.js"></script>
+    <script src="admin-common.js"></script>
+    <script src="calendar.js"></script>
+
+</body>
+
+</html>

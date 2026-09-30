@@ -70,6 +70,9 @@ const todayScheduleTitle =
 const todayScheduleList =
     document.querySelector("#today-schedule-list");
 
+const navCalendar =
+    document.querySelector("#nav-calendar");
+
 const navServices =
     document.querySelector("#nav-services");
 
@@ -230,6 +233,9 @@ function updateNavLinks() {
     if (currentStaffId === null) {
         return;
     }
+
+    navCalendar.href =
+        buildAdminUrl("calendar.html", currentStaffId);
 
     navServices.href =
         buildAdminUrl("services.html", currentStaffId);

@@ -126,4 +126,23 @@ const ICONS = {
         </svg>
     `,
 
+    noEntry: () => `
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="1.7" />
+            <path d="M6.5 6.5L17.5 17.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" />
+        </svg>
+    `,
+
+    plus: () => `
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" />
+        </svg>
+    `,
+
+    chevronDown: () => `
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+    `,
+
 };

@@ -22,6 +22,7 @@ const detailContent =
 let currentStaffId = null;
 let bookingId = null;
 let fromPage = "today";
+let fromDate = null;
 
 
 const STATUS_LABELS = {
@@ -59,7 +60,21 @@ function getFromPageFromUrl() {
     const params =
         new URLSearchParams(window.location.search);
 
-    return params.get("from") === "pending" ? "pending" : "today";
+    const from = params.get("from");
+
+    if (from === "pending" || from === "calendar") {
+        return from;
+    }
+
+    return "today";
+}
+
+
+function getFromDateFromUrl() {
+    const params =
+        new URLSearchParams(window.location.search);
+
+    return params.get("date");
 }
 
 
@@ -86,6 +101,20 @@ function setBackTarget() {
         });
 
         backLink.href = `pending.html?${params}`;
+
+    } else if (fromPage === "calendar") {
+
+        backLabel.textContent = "行事曆";
+
+        const params = new URLSearchParams({
+            staff_id: String(currentStaffId),
+        });
+
+        if (fromDate) {
+            params.set("date", fromDate);
+        }
+
+        backLink.href = `calendar.html?${params}`;
 
     } else {
 
@@ -362,6 +391,7 @@ async function initializeBookingDetailPage() {
 
     bookingId = getBookingIdFromUrl();
     fromPage = getFromPageFromUrl();
+    fromDate = getFromDateFromUrl();
 
     if (bookingId === null) {
         detailContent.innerHTML =

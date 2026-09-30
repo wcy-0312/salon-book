@@ -43,6 +43,12 @@
     --color-danger-fg: #c0392b;
     --color-danger-bg: #fbeae8;
 
+    /* ---- Blocked time（不可預約：一個中性、偏冷的色調，
+       刻意跟 pending 的暖橘分開——blocked 是既定事實，
+       不是「需要處理」的待辦事項）---- */
+    --color-blocked-fg: #5b5a72;
+    --color-blocked-bg: #eeeef4;
+
     /* ---- Semantic icon colors（僅用於 Booking Detail 的少量彩色 icon）---- */
     --color-icon-customer-fg: #1f8a7c;
     --color-icon-customer-bg: #e3f4f1;
@@ -746,6 +752,39 @@ svg {
     color: var(--color-pending-fg);
 }
 
+.timeline-dot.is-pending {
+    background: var(--color-pending-icon-bg);
+}
+
+.timeline-status.is-pending {
+    background: var(--color-pending-bg);
+    color: var(--color-pending-fg);
+}
+
+/* BlockedTime 列：同一條時間軸上的一列，但刻意做得比 Booking
+   安靜——沒有可點擊的卡片感、沒有 chevron，用色塊表示「這段
+   時間已經不存在」而不是「有一件事要處理」。 */
+.timeline-row.is-blocked {
+    cursor: default;
+}
+
+.timeline-dot.is-blocked {
+    background: var(--color-blocked-fg);
+}
+
+.timeline-row.is-blocked .timeline-name {
+    color: var(--color-blocked-fg);
+    font-weight: 600;
+}
+
+.timeline-row.is-blocked .timeline-body {
+    padding: 6px var(--space-3);
+
+    border-radius: var(--radius-sm);
+
+    background: var(--color-blocked-bg);
+}
+
 
 /* =========================================
    Today completion state（今日已完成）
@@ -1192,4 +1231,216 @@ svg {
 .bottom-nav-item.is-disabled {
     opacity: 0.4;
     cursor: default;
+}
+
+
+/* =========================================
+   Calendar — page header
+========================================= */
+
+.calendar-header-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+
+    margin-bottom: var(--space-4);
+}
+
+.calendar-month-label {
+    font-size: var(--text-body-secondary);
+    font-weight: 600;
+    color: var(--color-text-muted);
+}
+
+.calendar-month-nav {
+    display: flex;
+    align-items: center;
+
+    gap: var(--space-1);
+}
+
+.calendar-month-nav button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 28px;
+    height: 28px;
+
+    padding: 0;
+
+    border: none;
+    border-radius: var(--radius-sm);
+
+    background: none;
+    color: var(--color-text-muted);
+
+    cursor: pointer;
+}
+
+.calendar-month-nav button:hover {
+    background: var(--color-border);
+}
+
+.calendar-month-nav .icon {
+    width: 18px;
+    height: 18px;
+}
+
+
+/* =========================================
+   Calendar — week strip（日期選擇）
+========================================= */
+
+.week-strip {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+
+    gap: var(--space-1);
+    margin-bottom: var(--space-5);
+}
+
+.week-strip-day {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    gap: 4px;
+
+    padding: var(--space-2) 0;
+
+    border: none;
+    border-radius: var(--radius-sm);
+
+    background: none;
+
+    cursor: pointer;
+}
+
+.week-strip-weekday {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-text-faint);
+}
+
+.week-strip-date {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 32px;
+    height: 32px;
+
+    border-radius: 50%;
+
+    font-size: var(--text-body);
+    font-weight: 600;
+    color: var(--color-text);
+
+    font-variant-numeric: tabular-nums;
+}
+
+.week-strip-day.is-today .week-strip-date {
+    box-shadow: inset 0 0 0 1.5px var(--color-brand);
+}
+
+.week-strip-day.is-selected .week-strip-date {
+    background: var(--color-brand);
+    color: var(--color-on-brand);
+}
+
+.week-strip-dot {
+    width: 4px;
+    height: 4px;
+
+    border-radius: 50%;
+
+    background: var(--color-brand);
+
+    visibility: hidden;
+}
+
+.week-strip-day.has-content .week-strip-dot {
+    visibility: visible;
+}
+
+.week-strip-day.is-selected .week-strip-dot {
+    background: var(--color-text-faint);
+}
+
+
+/* =========================================
+   Calendar — selected date + daily schedule
+========================================= */
+
+.calendar-selected-date-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    margin-bottom: var(--space-4);
+}
+
+.calendar-selected-date {
+    font-size: var(--text-page-title);
+    font-weight: 700;
+}
+
+.calendar-add-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 36px;
+    height: 36px;
+
+    border: 1px solid var(--color-border-strong);
+    border-radius: 50%;
+
+    background: var(--color-surface);
+    color: var(--color-text);
+
+    cursor: pointer;
+}
+
+.calendar-add-button:hover {
+    background: var(--color-border);
+}
+
+.calendar-add-button .icon {
+    width: 18px;
+    height: 18px;
+}
+
+.calendar-closed-banner {
+    display: flex;
+    align-items: center;
+
+    gap: var(--space-3);
+
+    padding: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-4);
+
+    border-radius: var(--radius-md);
+
+    background: var(--color-blocked-bg);
+}
+
+.calendar-closed-banner-body {
+    flex: 1;
+
+    min-width: 0;
+}
+
+.calendar-closed-banner-title {
+    font-size: var(--text-body);
+    font-weight: 700;
+    color: var(--color-blocked-fg);
+}
+
+.calendar-closed-banner-subtitle {
+    margin-top: 1px;
+
+    color: var(--color-text-muted);
+    font-size: var(--text-body-secondary);
 }

@@ -537,157 +537,156 @@ def build_booking_view_url(booking_id: int) -> str:
     return f"https://miniapp.line.me/{liff_id}/booking.html?booking_id={booking_id}"
 
 
-def build_booking_confirmed_flex_message(
+# 各種 booking lifecycle 事件對應的 Flex Message 呈現設定。
+# 統一由 build_booking_flex_message() 依 notification_type 組出
+# 完整的 Flex Message，避免每個狀態各自複製一份幾乎相同的 JSON。
+BOOKING_FLEX_NOTIFICATION_CONFIG = {
+    "pending": {
+        "alt_text": "預約申請已送出",
+        "title": "預約申請已送出",
+        "title_color": "#b8860b",
+        "status_text": "等待設計師確認",
+        "show_action_button": True,
+    },
+    "confirmed": {
+        "alt_text": "預約已確認",
+        "title": "預約已確認",
+        "title_color": "#1f8a4c",
+        "status_text": "已確認",
+        "show_action_button": True,
+    },
+    "rejected": {
+        "alt_text": "預約未成立",
+        "title": "預約未成立",
+        "title_color": "#c0392b",
+        "status_text": "設計師未接受這筆預約",
+        "show_action_button": False,
+    },
+    "cancelled": {
+        "alt_text": "預約已取消",
+        "title": "預約已取消",
+        "title_color": "#888888",
+        "status_text": "已取消",
+        "show_action_button": False,
+    },
+    "reminder": {
+        "alt_text": "明天有預約",
+        "title": "明天有預約",
+        "title_color": "#242424",
+        "status_text": "已確認",
+        "show_action_button": True,
+    },
+}
+
+
+def build_booking_info_row(label: str, value: str) -> dict:
+    return {
+        "type": "box",
+        "layout": "baseline",
+        "contents": [
+            {
+                "type": "text",
+                "text": label,
+                "color": "#999999",
+                "size": "sm",
+                "flex": 2,
+            },
+            {
+                "type": "text",
+                "text": value,
+                "size": "sm",
+                "flex": 5,
+                "wrap": True,
+            },
+        ],
+    }
+
+
+def build_booking_flex_message(
     booking: "Booking",
     staff_name: str,
+    notification_type: str,
 ) -> dict:
-    booking_view_url = build_booking_view_url(booking.id)
+    """
+    共用的 booking Flex Message builder。
+    notification_type 決定 title、狀態文字、顏色，以及是否附上
+    「查看／取消預約」按鈕；booking 本身的欄位呈現方式一致。
+    """
+
+    config = BOOKING_FLEX_NOTIFICATION_CONFIG[notification_type]
+
+    body_contents = [
+        {
+            "type": "text",
+            "text": config["title"],
+            "weight": "bold",
+            "size": "lg",
+            "color": config["title_color"],
+        },
+        {
+            "type": "separator",
+            "margin": "md",
+        },
+        {
+            "type": "box",
+            "layout": "vertical",
+            "margin": "md",
+            "spacing": "sm",
+            "contents": [
+                build_booking_info_row("設計師", staff_name),
+                build_booking_info_row("服務", booking.service_name),
+                build_booking_info_row(
+                    "日期",
+                    f"{booking.start_at:%Y/%m/%d}",
+                ),
+                build_booking_info_row(
+                    "時間",
+                    f"{booking.start_at:%H:%M}",
+                ),
+                build_booking_info_row(
+                    "價格",
+                    f"${booking.price}",
+                ),
+                build_booking_info_row(
+                    "狀態",
+                    config["status_text"],
+                ),
+            ],
+        },
+    ]
+
+    bubble = {
+        "type": "bubble",
+        "body": {
+            "type": "box",
+            "layout": "vertical",
+            "spacing": "md",
+            "contents": body_contents,
+        },
+    }
+
+    if config["show_action_button"]:
+        bubble["footer"] = {
+            "type": "box",
+            "layout": "vertical",
+            "contents": [
+                {
+                    "type": "button",
+                    "style": "primary",
+                    "color": "#242424",
+                    "action": {
+                        "type": "uri",
+                        "label": "查看／取消預約",
+                        "uri": build_booking_view_url(booking.id),
+                    },
+                },
+            ],
+        }
 
     return {
         "type": "flex",
-        "altText": "您的預約已確認",
-        "contents": {
-            "type": "bubble",
-            "body": {
-                "type": "box",
-                "layout": "vertical",
-                "spacing": "md",
-                "contents": [
-                    {
-                        "type": "text",
-                        "text": "預約已確認",
-                        "weight": "bold",
-                        "size": "lg",
-                        "color": "#1f8a4c",
-                    },
-                    {
-                        "type": "separator",
-                        "margin": "md",
-                    },
-                    {
-                        "type": "box",
-                        "layout": "vertical",
-                        "margin": "md",
-                        "spacing": "sm",
-                        "contents": [
-                            {
-                                "type": "box",
-                                "layout": "baseline",
-                                "contents": [
-                                    {
-                                        "type": "text",
-                                        "text": "設計師",
-                                        "color": "#999999",
-                                        "size": "sm",
-                                        "flex": 2,
-                                    },
-                                    {
-                                        "type": "text",
-                                        "text": staff_name,
-                                        "size": "sm",
-                                        "flex": 5,
-                                        "wrap": True,
-                                    },
-                                ],
-                            },
-                            {
-                                "type": "box",
-                                "layout": "baseline",
-                                "contents": [
-                                    {
-                                        "type": "text",
-                                        "text": "服務",
-                                        "color": "#999999",
-                                        "size": "sm",
-                                        "flex": 2,
-                                    },
-                                    {
-                                        "type": "text",
-                                        "text": booking.service_name,
-                                        "size": "sm",
-                                        "flex": 5,
-                                        "wrap": True,
-                                    },
-                                ],
-                            },
-                            {
-                                "type": "box",
-                                "layout": "baseline",
-                                "contents": [
-                                    {
-                                        "type": "text",
-                                        "text": "日期",
-                                        "color": "#999999",
-                                        "size": "sm",
-                                        "flex": 2,
-                                    },
-                                    {
-                                        "type": "text",
-                                        "text": f"{booking.start_at:%Y/%m/%d}",
-                                        "size": "sm",
-                                        "flex": 5,
-                                    },
-                                ],
-                            },
-                            {
-                                "type": "box",
-                                "layout": "baseline",
-                                "contents": [
-                                    {
-                                        "type": "text",
-                                        "text": "時間",
-                                        "color": "#999999",
-                                        "size": "sm",
-                                        "flex": 2,
-                                    },
-                                    {
-                                        "type": "text",
-                                        "text": f"{booking.start_at:%H:%M}",
-                                        "size": "sm",
-                                        "flex": 5,
-                                    },
-                                ],
-                            },
-                            {
-                                "type": "box",
-                                "layout": "baseline",
-                                "contents": [
-                                    {
-                                        "type": "text",
-                                        "text": "價格",
-                                        "color": "#999999",
-                                        "size": "sm",
-                                        "flex": 2,
-                                    },
-                                    {
-                                        "type": "text",
-                                        "text": f"${booking.price}",
-                                        "size": "sm",
-                                        "flex": 5,
-                                    },
-                                ],
-                            },
-                        ],
-                    },
-                ],
-            },
-            "footer": {
-                "type": "box",
-                "layout": "vertical",
-                "contents": [
-                    {
-                        "type": "button",
-                        "style": "primary",
-                        "color": "#242424",
-                        "action": {
-                            "type": "uri",
-                            "label": "查看／取消預約",
-                            "uri": booking_view_url,
-                        },
-                    },
-                ],
-            },
-        },
+        "altText": config["alt_text"],
+        "contents": bubble,
     }
 
 
@@ -1110,17 +1109,12 @@ def create_booking(
         session.commit()
         session.refresh(booking)
 
-        try_send_line_message(
+        try_send_line_flex_message(
             booking.line_user_id,
-            (
-                "SalonBook 預約申請\n\n"
-                "您的預約申請已送出，目前等待設計師確認。\n\n"
-                f"設計師：{staff.name}\n"
-                f"服務：{booking.service_name}\n"
-                f"日期：{booking.start_at:%Y/%m/%d}\n"
-                f"時間：{booking.start_at:%H:%M}\n"
-                f"價格：${booking.price}\n\n"
-                "確認完成後，我們會再透過 LINE 通知您。"
+            build_booking_flex_message(
+                booking,
+                staff.name,
+                "pending",
             ),
         )
 
@@ -1710,9 +1704,10 @@ def confirm_booking(
 
             try_send_line_flex_message(
                 booking.line_user_id,
-                build_booking_confirmed_flex_message(
+                build_booking_flex_message(
                     booking,
                     staff.name if staff else "",
+                    "confirmed",
                 ),
             )
 
@@ -1760,16 +1755,12 @@ def reject_booking(
                 booking.staff_id,
             )
 
-            try_send_line_message(
+            try_send_line_flex_message(
                 booking.line_user_id,
-                (
-                    "SalonBook 預約通知\n\n"
-                    "很抱歉，您的預約目前無法接受。\n\n"
-                    f"設計師：{staff.name}\n"
-                    f"服務：{booking.service_name}\n"
-                    f"日期：{booking.start_at:%Y/%m/%d}\n"
-                    f"時間：{booking.start_at:%H:%M}\n\n"
-                    "請重新選擇其他預約時段。"
+                build_booking_flex_message(
+                    booking,
+                    staff.name if staff else "",
+                    "rejected",
                 ),
             )
 
@@ -1817,15 +1808,12 @@ def cancel_booking(
                 booking.staff_id,
             )
 
-            try_send_line_message(
+            try_send_line_flex_message(
                 booking.line_user_id,
-                (
-                    "SalonBook 預約通知\n\n"
-                    "您的預約已取消。\n\n"
-                    f"設計師：{staff.name}\n"
-                    f"服務：{booking.service_name}\n"
-                    f"日期：{booking.start_at:%Y/%m/%d}\n"
-                    f"時間：{booking.start_at:%H:%M}"
+                build_booking_flex_message(
+                    booking,
+                    staff.name if staff else "",
+                    "cancelled",
                 ),
             )
 
@@ -1907,10 +1895,13 @@ def cancel_my_booking(
                 detail="Booking not found",
             )
 
-        if booking.status != BookingStatus.CONFIRMED:
+        if booking.status not in (
+            BookingStatus.PENDING,
+            BookingStatus.CONFIRMED,
+        ):
             raise HTTPException(
                 status_code=409,
-                detail="Only confirmed bookings can be cancelled",
+                detail="Only pending or confirmed bookings can be cancelled",
             )
 
         booking.status = BookingStatus.CANCELLED
@@ -1922,6 +1913,15 @@ def cancel_my_booking(
         staff = session.get(
             Staff,
             booking.staff_id,
+        )
+
+        try_send_line_flex_message(
+            booking.line_user_id,
+            build_booking_flex_message(
+                booking,
+                staff.name if staff else "",
+                "cancelled",
+            ),
         )
 
         return MyBookingResponse(

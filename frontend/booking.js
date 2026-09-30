@@ -45,9 +45,14 @@ let currentBooking = null;
 const STATUS_LABELS = {
     pending: "等待設計師確認",
     confirmed: "已確認",
-    rejected: "已婉拒",
+    rejected: "未成立",
     cancelled: "已取消",
 };
+
+const CANCELLABLE_STATUSES = [
+    "pending",
+    "confirmed",
+];
 
 
 /* -------------------------
@@ -118,7 +123,7 @@ function renderBooking(booking) {
     bookingPrice.textContent =
         `$${booking.price.toLocaleString()}`;
 
-    if (booking.status === "confirmed") {
+    if (CANCELLABLE_STATUSES.includes(booking.status)) {
         cancelButton.classList.remove("hidden");
         cancelButton.disabled = false;
         cancelButton.textContent = "取消預約";

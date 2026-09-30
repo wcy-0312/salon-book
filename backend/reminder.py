@@ -6,9 +6,10 @@ from backend.main import (
     Booking,
     BookingStatus,
     Staff,
+    build_booking_flex_message,
     engine,
     taipei_now,
-    try_send_line_message,
+    try_send_line_flex_message,
 )
 
 def send_tomorrow_reminders():
@@ -43,16 +44,12 @@ def send_tomorrow_reminders():
                 booking.staff_id,
             )
 
-            sent = try_send_line_message(
+            sent = try_send_line_flex_message(
                 booking.line_user_id,
-                (
-                    "SalonBook 預約提醒\n\n"
-                    "提醒您明天有預約！\n\n"
-                    f"設計師：{staff.name}\n"
-                    f"服務：{booking.service_name}\n"
-                    f"日期：{booking.start_at:%Y/%m/%d}\n"
-                    f"時間：{booking.start_at:%H:%M}\n\n"
-                    "期待您的到來！"
+                build_booking_flex_message(
+                    booking,
+                    staff.name,
+                    "reminder",
                 ),
             )
 

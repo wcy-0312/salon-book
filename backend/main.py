@@ -995,6 +995,10 @@ def get_services(
                 StaffService.service_id == Service.id,
                 Service.is_active == True,
             )
+            .order_by(
+                StaffService.price,
+                Service.name,
+            )
         )
 
         rows = session.exec(statement).all()

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>SalonBook 休假管理</title>
+
+    <link
+        rel="stylesheet"
+        href="admin.css"
+    >
+</head>
+
+<body>
+
+    <main class="container">
+
+        <header class="header">
+            <div>
+                <h1 id="leave-staff-title">休假管理</h1>
+                <p><a id="back-to-admin-link" href="admin.html">← 返回今日</a></p>
+            </div>
+        </header>
+
+
+        <!-- 休假管理 -->
+        <section class="section">
+
+            <div class="section-header">
+                <h2>休假管理</h2>
+            </div>
+
+            <div class="calendar">
+
+                <div class="calendar-header">
+
+                    <button
+                        id="calendar-prev-month"
+                        type="button"
+                        class="date-button"
+                    >
+                        ‹
+                    </button>
+
+                    <strong id="calendar-month-label">
+                        --
+                    </strong>
+
+                    <button
+                        id="calendar-next-month"
+                        type="button"
+                        class="date-button"
+                    >
+                        ›
+                    </button>
+
+                </div>
+
+                <div class="calendar-weekdays">
+                    <span>日</span>
+                    <span>一</span>
+                    <span>二</span>
+                    <span>三</span>
+                    <span>四</span>
+                    <span>五</span>
+                    <span>六</span>
+                </div>
+
+                <div
+                    id="calendar-grid"
+                    class="calendar-grid"
+                >
+                    <p class="loading">
+                        載入中...
+                    </p>
+                </div>
+
+                <p class="calendar-hint">
+                    點擊日期即可設定或取消休假
+                </p>
+
+            </div>
+
+        </section>
+
+    </main>
+
+
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="admin-common.js"></script>
+    <script src="leave.js"></script>
+
+</body>
+
+</html>

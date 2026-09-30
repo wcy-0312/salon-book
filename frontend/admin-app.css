@@ -1,0 +1,984 @@
+/* =========================================
+   SalonBook Admin App — Design tokens
+
+   這是新版 Admin App（今日／待確認列表／Booking Detail／
+   Bottom Navigation）專用的樣式，與舊版 admin.css（仍給
+   schedule.html / services.html / staff.html 使用）分開，
+   避免這次的視覺調整影響尚未重做的頁面。
+
+   顏色、字體、button 樣式都還不是最終版，因此全部走 CSS
+   variable，之後要統一調整時只需要改這裡。
+========================================= */
+
+:root {
+    /* Surface */
+    --color-bg: #f7f7f5;
+    --color-surface: #ffffff;
+    --color-border: #ebebe7;
+
+    /* Text */
+    --color-text: #1c1c1a;
+    --color-text-muted: #77776f;
+    --color-text-faint: #a3a39a;
+
+    /* Brand */
+    --color-brand: #1f8a4c;
+    --color-brand-contrast: #ffffff;
+
+    /* Semantic status */
+    --color-warning-bg: #fdeee0;
+    --color-warning-fg: #c8672a;
+    --color-warning-icon: #e8863f;
+
+    --color-success-bg: #e8f5ec;
+    --color-success-fg: #1f8a4c;
+
+    --color-danger-bg: #fdeceb;
+    --color-danger-fg: #c0392b;
+
+    --color-info-bg: #eef2fc;
+    --color-info-fg: #3c5fce;
+
+    /* Spacing scale */
+    --space-1: 4px;
+    --space-2: 8px;
+    --space-3: 12px;
+    --space-4: 16px;
+    --space-5: 20px;
+    --space-6: 24px;
+    --space-8: 32px;
+
+    /* Radius */
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 20px;
+    --radius-pill: 999px;
+
+    /* Shadow (kept minimal on purpose) */
+    --shadow-card: 0 1px 2px rgba(20, 20, 15, 0.04);
+
+    /* Bottom nav height, used to pad page content */
+    --bottom-nav-height: 64px;
+}
+
+
+/* =========================================
+   Base
+========================================= */
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    overflow-x: hidden;
+}
+
+body {
+    margin: 0;
+    background: var(--color-bg);
+
+    font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        "Noto Sans TC",
+        sans-serif;
+
+    color: var(--color-text);
+}
+
+button {
+    font: inherit;
+}
+
+a {
+    color: inherit;
+    text-decoration: none;
+}
+
+
+/* =========================================
+   Layout
+========================================= */
+
+.app-container {
+    width: 100%;
+    max-width: 480px;
+
+    margin: 0 auto;
+
+    padding: var(--space-6) var(--space-4) calc(var(--bottom-nav-height) + var(--space-6));
+}
+
+.app-container.no-bottom-nav {
+    padding-bottom: var(--space-8);
+}
+
+
+/* =========================================
+   Top bar (detail-page style back header)
+========================================= */
+
+.top-bar {
+    display: flex;
+    align-items: center;
+
+    gap: var(--space-2);
+
+    margin-bottom: var(--space-5);
+}
+
+.top-bar-back {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 36px;
+    height: 36px;
+
+    padding: 0;
+
+    border: none;
+    border-radius: var(--radius-sm);
+
+    background: none;
+    color: var(--color-text);
+
+    font-size: 20px;
+
+    cursor: pointer;
+}
+
+.top-bar-back:hover {
+    background: var(--color-border);
+}
+
+.top-bar-title {
+    flex: 1;
+
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.top-bar-action {
+    color: var(--color-text-muted);
+    font-size: 20px;
+}
+
+
+/* =========================================
+   Today — Greeting header
+========================================= */
+
+.greeting-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    margin-bottom: var(--space-5);
+}
+
+.brand-title {
+    margin: 0 0 var(--space-2);
+
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.3px;
+}
+
+.staff-switcher-v2 {
+    position: relative;
+
+    display: inline-flex;
+    align-items: center;
+}
+
+.staff-greeting-prefix {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--color-text);
+}
+
+.staff-switcher-v2 select {
+    appearance: none;
+
+    padding: var(--space-2) var(--space-6) var(--space-2) var(--space-1);
+
+    border: none;
+    background: none;
+
+    font: inherit;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--color-text);
+
+    cursor: pointer;
+}
+
+.staff-switcher-v2::after {
+    content: "▾";
+
+    position: absolute;
+    right: 0;
+    top: 50%;
+
+    transform: translateY(-50%);
+
+    color: var(--color-text-muted);
+    font-size: 12px;
+
+    pointer-events: none;
+}
+
+.staff-role {
+    margin: 0;
+
+    color: var(--color-text-muted);
+    font-size: 13px;
+}
+
+.today-date {
+    margin: var(--space-4) 0 var(--space-1);
+
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.today-summary {
+    margin: 0 0 var(--space-5);
+
+    color: var(--color-text-muted);
+    font-size: 13px;
+}
+
+
+/* =========================================
+   Alert card ("需要處理")
+========================================= */
+
+.alert-card {
+    display: flex;
+    align-items: center;
+
+    gap: var(--space-3);
+
+    width: 100%;
+
+    padding: var(--space-4);
+    margin-bottom: var(--space-4);
+
+    border: none;
+    border-radius: var(--radius-md);
+
+    background: var(--color-warning-bg);
+
+    cursor: pointer;
+    text-align: left;
+}
+
+.alert-card-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+    background: var(--color-warning-icon);
+    color: #ffffff;
+
+    font-size: 16px;
+}
+
+.alert-card-body {
+    flex: 1;
+
+    display: flex;
+    flex-direction: column;
+
+    gap: 2px;
+}
+
+.alert-card-label {
+    color: var(--color-warning-fg);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.alert-card-title {
+    display: flex;
+    align-items: center;
+
+    gap: var(--space-2);
+
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.alert-card-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 22px;
+    height: 22px;
+
+    padding: 0 6px;
+
+    border-radius: var(--radius-pill);
+
+    background: var(--color-danger-fg);
+    color: #ffffff;
+
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.alert-card-chevron {
+    color: var(--color-warning-fg);
+    font-size: 18px;
+}
+
+
+/* =========================================
+   Section
+========================================= */
+
+.app-section {
+    margin-bottom: var(--space-6);
+}
+
+.app-section-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+
+    margin-bottom: var(--space-3);
+}
+
+.app-section-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-text-muted);
+}
+
+.app-section-link {
+    display: flex;
+    align-items: center;
+
+    gap: 2px;
+
+    color: var(--color-text-muted);
+    font-size: 13px;
+    font-weight: 600;
+
+    background: none;
+    border: none;
+
+    cursor: pointer;
+}
+
+
+/* =========================================
+   Next customer card
+========================================= */
+
+.next-card {
+    display: flex;
+    align-items: center;
+
+    gap: var(--space-3);
+
+    width: 100%;
+
+    padding: var(--space-4);
+
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
+
+    cursor: pointer;
+    text-align: left;
+}
+
+.next-card-time-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+    background: var(--color-success-bg);
+    color: var(--color-success-fg);
+
+    font-size: 16px;
+}
+
+.next-card-body {
+    flex: 1;
+
+    min-width: 0;
+}
+
+.next-card-time {
+    font-size: 17px;
+    font-weight: 800;
+}
+
+.next-card-name {
+    margin-top: 2px;
+
+    font-size: 14px;
+    color: var(--color-text);
+}
+
+.next-card-meta {
+    margin-top: 2px;
+
+    color: var(--color-text-muted);
+    font-size: 13px;
+}
+
+.next-card-chevron {
+    color: var(--color-text-faint);
+    font-size: 18px;
+}
+
+
+/* =========================================
+   Timeline list (今日行程 summary)
+========================================= */
+
+.timeline-list {
+    display: flex;
+    flex-direction: column;
+
+    gap: var(--space-3);
+}
+
+.timeline-row {
+    display: flex;
+    align-items: center;
+
+    gap: var(--space-3);
+
+    width: 100%;
+
+    padding: 0;
+
+    border: none;
+    background: none;
+
+    cursor: pointer;
+    text-align: left;
+}
+
+.timeline-dot {
+    width: 8px;
+    height: 8px;
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+    background: var(--color-text-faint);
+}
+
+.timeline-dot.is-next {
+    background: var(--color-warning-icon);
+}
+
+.timeline-dot.is-confirmed {
+    background: var(--color-success-fg);
+}
+
+.timeline-time {
+    width: 44px;
+    flex-shrink: 0;
+
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-text-muted);
+}
+
+.timeline-body {
+    flex: 1;
+
+    min-width: 0;
+
+    display: flex;
+    align-items: baseline;
+
+    gap: var(--space-2);
+}
+
+.timeline-name {
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.timeline-meta {
+    color: var(--color-text-muted);
+    font-size: 13px;
+}
+
+.timeline-status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+    font-size: 12px;
+}
+
+.timeline-status.is-confirmed {
+    background: var(--color-success-bg);
+    color: var(--color-success-fg);
+}
+
+.timeline-status.is-next {
+    background: var(--color-warning-bg);
+    color: var(--color-warning-fg);
+}
+
+
+/* =========================================
+   Pending list page
+========================================= */
+
+.pending-title-row {
+    display: flex;
+    align-items: center;
+
+    gap: var(--space-2);
+
+    margin-bottom: var(--space-4);
+}
+
+.pending-title {
+    font-size: 20px;
+    font-weight: 800;
+}
+
+.pending-count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    min-width: 24px;
+    height: 24px;
+
+    padding: 0 7px;
+
+    border-radius: var(--radius-pill);
+
+    background: var(--color-danger-fg);
+    color: #ffffff;
+
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.booking-row {
+    display: flex;
+    align-items: center;
+
+    gap: var(--space-3);
+
+    width: 100%;
+
+    padding: var(--space-4);
+    margin-bottom: var(--space-3);
+
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
+
+    cursor: pointer;
+    text-align: left;
+}
+
+.booking-row-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+    background: var(--color-info-bg);
+    color: var(--color-info-fg);
+
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.booking-row-body {
+    flex: 1;
+
+    min-width: 0;
+}
+
+.booking-row-time {
+    font-size: 13px;
+    color: var(--color-text-muted);
+}
+
+.booking-row-name {
+    margin-top: 2px;
+
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.booking-row-meta {
+    margin-top: 2px;
+
+    color: var(--color-text-muted);
+    font-size: 13px;
+}
+
+.booking-row-chevron {
+    color: var(--color-text-faint);
+    font-size: 18px;
+}
+
+
+/* =========================================
+   Booking detail page
+========================================= */
+
+.detail-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    margin-bottom: var(--space-4);
+}
+
+.detail-heading {
+    font-size: 20px;
+    font-weight: 800;
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+
+    gap: var(--space-1);
+
+    padding: var(--space-1) var(--space-3);
+
+    border-radius: var(--radius-pill);
+
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.status-pill.is-pending {
+    background: var(--color-warning-bg);
+    color: var(--color-warning-fg);
+}
+
+.status-pill.is-confirmed {
+    background: var(--color-success-bg);
+    color: var(--color-success-fg);
+}
+
+.status-pill.is-rejected,
+.status-pill.is-cancelled {
+    background: var(--color-danger-bg);
+    color: var(--color-danger-fg);
+}
+
+.detail-card {
+    padding: 0 var(--space-4);
+    margin-bottom: var(--space-5);
+
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+
+    background: var(--color-surface);
+    box-shadow: var(--shadow-card);
+}
+
+.detail-row {
+    display: flex;
+
+    gap: var(--space-3);
+
+    padding: var(--space-4) 0;
+
+    border-bottom: 1px solid var(--color-border);
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-row-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+    font-size: 15px;
+}
+
+.detail-row-icon.is-customer {
+    background: var(--color-info-bg);
+    color: var(--color-info-fg);
+}
+
+.detail-row-icon.is-date {
+    background: var(--color-danger-bg);
+    color: var(--color-danger-fg);
+}
+
+.detail-row-icon.is-service {
+    background: var(--color-info-bg);
+    color: var(--color-info-fg);
+}
+
+.detail-row-body {
+    flex: 1;
+
+    min-width: 0;
+}
+
+.detail-row-primary {
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.detail-row-secondary {
+    margin-top: 2px;
+
+    color: var(--color-text-muted);
+    font-size: 13px;
+}
+
+.detail-row-value {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+
+    gap: var(--space-3);
+}
+
+
+/* =========================================
+   Action buttons (bottom of detail page)
+========================================= */
+
+.detail-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+
+    gap: var(--space-3);
+}
+
+.detail-actions.single {
+    grid-template-columns: 1fr;
+}
+
+.action-button {
+    min-height: 48px;
+
+    padding: var(--space-3);
+
+    border-radius: var(--radius-sm);
+
+    font-size: 15px;
+    font-weight: 700;
+
+    cursor: pointer;
+
+    transition:
+        background 0.15s ease,
+        opacity 0.15s ease;
+}
+
+.action-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.action-button.is-reject {
+    border: 1px solid var(--color-danger-fg);
+
+    background: var(--color-surface);
+    color: var(--color-danger-fg);
+}
+
+.action-button.is-reject:hover:not(:disabled) {
+    background: var(--color-danger-bg);
+}
+
+.action-button.is-confirm {
+    border: 1px solid var(--color-brand);
+
+    background: var(--color-brand);
+    color: var(--color-brand-contrast);
+}
+
+.action-button.is-confirm:hover:not(:disabled) {
+    opacity: 0.9;
+}
+
+.action-button.is-neutral {
+    border: 1px solid var(--color-border);
+
+    background: var(--color-surface);
+    color: var(--color-text);
+}
+
+
+/* =========================================
+   Result banner (「預約已確認」)
+========================================= */
+
+.result-banner {
+    display: flex;
+    align-items: center;
+
+    gap: var(--space-3);
+
+    padding: var(--space-4);
+    margin-top: var(--space-4);
+
+    border-radius: var(--radius-md);
+
+    background: var(--color-success-bg);
+}
+
+.result-banner.is-rejected {
+    background: var(--color-danger-bg);
+}
+
+.result-banner-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+
+    border-radius: 50%;
+
+    background: var(--color-success-fg);
+    color: #ffffff;
+
+    font-size: 14px;
+}
+
+.result-banner.is-rejected .result-banner-icon {
+    background: var(--color-danger-fg);
+}
+
+.result-banner-title {
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.result-banner-subtitle {
+    margin-top: 1px;
+
+    color: var(--color-text-muted);
+    font-size: 12px;
+}
+
+
+/* =========================================
+   Loading / Empty
+========================================= */
+
+.state-message {
+    margin: 0;
+
+    padding: var(--space-8) var(--space-4);
+
+    text-align: center;
+
+    color: var(--color-text-faint);
+    font-size: 14px;
+}
+
+
+/* =========================================
+   Bottom navigation
+========================================= */
+
+.bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+
+    display: flex;
+
+    height: var(--bottom-nav-height);
+
+    background: var(--color-surface);
+
+    border-top: 1px solid var(--color-border);
+
+    z-index: 10;
+}
+
+.bottom-nav-item {
+    flex: 1;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    gap: 2px;
+
+    color: var(--color-text-faint);
+    font-size: 11px;
+    font-weight: 600;
+
+    cursor: pointer;
+}
+
+.bottom-nav-icon {
+    font-size: 20px;
+    line-height: 1;
+}
+
+.bottom-nav-item.is-active {
+    color: var(--color-brand);
+}
+
+.bottom-nav-item.is-disabled {
+    opacity: 0.4;
+    cursor: default;
+}

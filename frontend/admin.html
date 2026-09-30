@@ -9,260 +9,150 @@
         content="width=device-width, initial-scale=1.0"
     >
 
-    <title>SalonBook 管理</title>
+    <title>SalonBook 今日</title>
 
     <link
         rel="stylesheet"
-        href="admin.css"
+        href="admin-app.css"
     >
 </head>
 
 <body>
 
-    <main class="container">
+    <main class="app-container">
 
-        <header class="header">
+        <!-- 問候 + 設計師切換 -->
+        <header class="greeting-header">
             <div>
-                <h1>SalonBook</h1>
-                <p id="current-staff-label">預約管理</p>
-            </div>
+                <h1 class="brand-title">SalonBook</h1>
 
-            <div class="header-actions">
+                <div class="staff-switcher-v2">
+                    <span class="staff-greeting-prefix">早安，</span>
+                    <select id="staff-select">
+                        <option>載入中...</option>
+                    </select>
+                </div>
 
-                <a
-                    href="staff.html"
-                    class="header-nav-button"
-                >
-                    設計師管理
-                </a>
-
-                <a
-                    id="services-nav-link"
-                    href="services.html"
-                    class="header-nav-button"
-                >
-                    服務管理
-                </a>
-
-                <a
-                    id="schedule-nav-link"
-                    href="schedule.html"
-                    class="header-nav-button"
-                >
-                    營業時間
-                </a>
-
-                <button
-                    id="refresh-button"
-                    type="button"
-                    class="refresh-button"
-                >
-                    重新整理
-                </button>
-
+                <p class="staff-role" id="staff-role">髮型設計師</p>
             </div>
         </header>
 
-
-        <!-- 設計師切換 -->
-        <section class="staff-switcher">
-
-            <label for="staff-select">設計師</label>
-
-            <select id="staff-select">
-                <option>載入中...</option>
-            </select>
-
-        </section>
+        <p class="today-date" id="today-date">--</p>
+        <p class="today-summary" id="today-summary">載入中...</p>
 
 
-        <!-- 待確認：所有未來 PENDING，不受日期切換影響 -->
-        <section class="section">
+        <!-- 需要處理：待確認預約入口 -->
+        <a
+            id="pending-alert-card"
+            href="#"
+            class="alert-card"
+            style="display: none;"
+        >
+            <span class="alert-card-icon">⏰</span>
 
-            <div class="section-header">
+            <span class="alert-card-body">
+                <span class="alert-card-label">需要處理</span>
+                <span class="alert-card-title">
+                    待確認預約
+                    <span
+                        class="alert-card-count"
+                        id="pending-alert-count"
+                    >0</span>
+                </span>
+            </span>
 
-                <h2>待確認預約</h2>
+            <span class="alert-card-chevron">›</span>
+        </a>
 
-                <span
-                    id="pending-count"
-                    class="count"
-                >
-                    0
+
+        <!-- 下一位客人 -->
+        <section class="app-section" id="next-customer-section" style="display: none;">
+
+            <div class="app-section-header">
+                <span class="app-section-title">下一位客人</span>
+            </div>
+
+            <a
+                id="next-customer-card"
+                href="#"
+                class="next-card"
+            >
+                <span class="next-card-time-badge">📅</span>
+
+                <span class="next-card-body">
+                    <span class="next-card-time" id="next-customer-time">--:--</span>
+                    <div class="next-card-name" id="next-customer-name">--</div>
+                    <div class="next-card-meta" id="next-customer-meta">--</div>
                 </span>
 
-            </div>
-
-            <div
-                id="booking-list"
-                class="booking-list"
-            >
-                <p class="loading">
-                    載入中...
-                </p>
-            </div>
+                <span class="next-card-chevron">›</span>
+            </a>
 
         </section>
 
 
-        <!-- 近期預約：最近 10 筆 CONFIRMED，不受日期切換影響 -->
-        <section class="section">
+        <!-- 今日行程摘要 -->
+        <section class="app-section">
 
-            <div class="section-header">
-
-                <h2>近期預約</h2>
-
-                <span
-                    id="upcoming-count"
-                    class="count count-secondary"
-                >
-                    0
-                </span>
-
+            <div class="app-section-header">
+                <span class="app-section-title" id="today-schedule-title">今日行程</span>
             </div>
 
             <div
-                id="upcoming-list"
-                class="booking-list"
+                id="today-schedule-list"
+                class="timeline-list"
             >
-                <p class="loading">
-                    載入中...
-                </p>
-            </div>
-
-        </section>
-
-
-        <!-- 日期導覽：僅影響下方「當日行程」 -->
-        <section class="date-navigation">
-
-            <button
-                id="previous-date-button"
-                type="button"
-                class="date-button"
-            >
-                ‹
-            </button>
-
-            <div
-                id="date-picker-button"
-                class="current-date"
-                role="button"
-                tabindex="0"
-            >
-                <strong id="current-date-text">
-                    --
-                </strong>
-            </div>
-
-            <input
-                id="date-picker"
-                type="date"
-                hidden
-            >
-
-            <button
-                id="next-date-button"
-                type="button"
-                class="date-button"
-            >
-                ›
-            </button>
-
-        </section>
-
-
-        <!-- 當日行程：目前選擇日期的 CONFIRMED -->
-        <section class="section schedule-section">
-
-            <div class="section-header">
-
-                <h2>當日行程</h2>
-
-                <span
-                    id="schedule-count"
-                    class="count count-secondary"
-                >
-                    0
-                </span>
-
-            </div>
-
-            <div
-                id="schedule-list"
-                class="schedule-list"
-            >
-                <p class="loading">
-                    載入中...
-                </p>
-            </div>
-
-        </section>
-
-
-        <!-- 休假管理 -->
-        <section class="section">
-
-            <div class="section-header">
-                <h2>休假管理</h2>
-            </div>
-
-            <div class="calendar">
-
-                <div class="calendar-header">
-
-                    <button
-                        id="calendar-prev-month"
-                        type="button"
-                        class="date-button"
-                    >
-                        ‹
-                    </button>
-
-                    <strong id="calendar-month-label">
-                        --
-                    </strong>
-
-                    <button
-                        id="calendar-next-month"
-                        type="button"
-                        class="date-button"
-                    >
-                        ›
-                    </button>
-
-                </div>
-
-                <div class="calendar-weekdays">
-                    <span>日</span>
-                    <span>一</span>
-                    <span>二</span>
-                    <span>三</span>
-                    <span>四</span>
-                    <span>五</span>
-                    <span>六</span>
-                </div>
-
-                <div
-                    id="calendar-grid"
-                    class="calendar-grid"
-                >
-                    <p class="loading">
-                        載入中...
-                    </p>
-                </div>
-
-                <p class="calendar-hint">
-                    點擊日期即可設定或取消休假
-                </p>
-
+                <p class="state-message">載入中...</p>
             </div>
 
         </section>
 
     </main>
 
-    
+
+    <!-- Bottom Navigation -->
+    <nav class="bottom-nav">
+
+        <a
+            id="nav-today"
+            href="admin.html"
+            class="bottom-nav-item is-active"
+        >
+            <span class="bottom-nav-icon">🏠</span>
+            今日
+        </a>
+
+        <span
+            id="nav-calendar"
+            class="bottom-nav-item is-disabled"
+        >
+            <span class="bottom-nav-icon">🗓️</span>
+            行事曆
+        </span>
+
+        <a
+            id="nav-services"
+            href="services.html"
+            class="bottom-nav-item"
+        >
+            <span class="bottom-nav-icon">✂️</span>
+            服務
+        </a>
+
+        <a
+            id="nav-management"
+            href="staff.html"
+            class="bottom-nav-item"
+        >
+            <span class="bottom-nav-icon">⚙️</span>
+            管理
+        </a>
+
+    </nav>
+
+
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="admin-common.js"></script>
     <script src="admin.js"></script>
 
 </body>

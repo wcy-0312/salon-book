@@ -2111,6 +2111,39 @@ def get_availability_summary(
 # =========================================================
 
 @app.get(
+    "/bookings/{booking_id}",
+    response_model=Booking,
+)
+def get_booking(
+    booking_id: int,
+    authorization: str | None = Header(default=None),
+):
+    """
+    Admin 專用的單筆 Booking 詳情，供 Admin App 的 Booking Detail
+    畫面使用。與 /my-bookings/{id} 是完全不同的 endpoint：這裡用
+    require_admin() 驗證管理員身分，不做 customer ownership 檢查，
+    因為呼叫者是 Admin 本人，不是預約的客人。
+    """
+
+    require_admin(authorization)
+
+    with Session(engine) as session:
+
+        booking = session.get(
+            Booking,
+            booking_id,
+        )
+
+        if booking is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Booking not found",
+            )
+
+        return booking
+
+
+@app.get(
     "/bookings",
     response_model=list[Booking],
 )

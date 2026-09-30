@@ -1,67 +1,11 @@
-const LIFF_ID = "2011675360-s1xEolBB";
-
-let adminIdToken = null;
-
-async function initializeAdminLiff() {
-    await liff.init({
-        liffId: LIFF_ID,
-    });
-
-    if (!liff.isLoggedIn()) {
-        liff.login({
-            redirectUri: window.location.href,
-        });
-        return false;
-    }
-
-    adminIdToken = liff.getIDToken();
-
-    if (!adminIdToken) {
-        throw new Error("LINE ID token is unavailable");
-    }
-
-    const response = await fetch(
-        `${API_BASE_URL}/auth/admin`,
-        {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                id_token: adminIdToken,
-            }),
-        }
-    );
-
-    if (!response.ok) {
-        throw new Error(
-            `Admin authentication failed: ${response.status}`
-        );
-    }
-
-    return true;
-}
-
-const API_BASE_URL =
-    "https://salon-book-production.up.railway.app";
+/* =========================================
+   LIFF 登入、staff_id 解析等共用邏輯已抽到 admin-common.js
+   （initializeAdminLiff / getStaffIdFromUrl / resolveInitialStaffId /
+   updateUrlStaffId / buildAdminUrl / fetchAdminStaffList /
+   pickDefaultStaff），此頁只保留自己的狀態與畫面邏輯。
+========================================= */
 
 let currentStaffId = null;
-
-
-function getStaffIdFromUrl() {
-    const params =
-        new URLSearchParams(window.location.search);
-
-    const value = params.get("staff_id");
-
-    if (!value) {
-        return null;
-    }
-
-    const parsed = Number(value);
-
-    return Number.isInteger(parsed) ? parsed : null;
-}
 
 
 const WEEKDAY_LABELS = [
@@ -118,27 +62,12 @@ let editingWeekday = null;
 async function loadCurrentStaff() {
 
     backToAdminLink.href =
-        `admin.html?staff_id=${currentStaffId}`;
+        buildAdminUrl("admin.html", currentStaffId);
 
     try {
 
-        const response = await fetch(
-            `${API_BASE_URL}/admin/staff`,
-            {
-                headers: {
-                    Authorization: `Bearer ${adminIdToken}`,
-                },
-            }
-        );
-
-        if (!response.ok) {
-            throw new Error(
-                `HTTP ${response.status}`
-            );
-        }
-
         const staffList =
-            await response.json();
+            await fetchAdminStaffList();
 
         const staff = staffList.find(
             (item) => item.id === currentStaffId
@@ -443,50 +372,6 @@ scheduleEditForm.addEventListener(
 /* =========================================
    Init
 ========================================= */
-
-async function resolveInitialStaffId() {
-
-    const staffIdFromUrl =
-        getStaffIdFromUrl();
-
-    if (staffIdFromUrl !== null) {
-        return staffIdFromUrl;
-    }
-
-    const response = await fetch(
-        `${API_BASE_URL}/admin/staff`,
-        {
-            headers: {
-                Authorization: `Bearer ${adminIdToken}`,
-            },
-        }
-    );
-
-    if (!response.ok) {
-        throw new Error(
-            `HTTP ${response.status}`
-        );
-    }
-
-    const staffList =
-        await response.json();
-
-    if (staffList.length === 0) {
-        throw new Error("目前沒有設計師");
-    }
-
-    const andy = staffList.find(
-        (staff) => staff.name === "Andy"
-    );
-
-    const defaultStaff =
-        andy
-        ?? staffList.find((staff) => staff.is_active)
-        ?? staffList[0];
-
-    return defaultStaff.id;
-}
-
 
 async function initializeSchedulePage() {
     try {

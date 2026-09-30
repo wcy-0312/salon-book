@@ -1,49 +1,6 @@
-const LIFF_ID = "2011675360-s1xEolBB";
-
-let adminIdToken = null;
-
-async function initializeAdminLiff() {
-    await liff.init({
-        liffId: LIFF_ID,
-    });
-
-    if (!liff.isLoggedIn()) {
-        liff.login({
-            redirectUri: window.location.href,
-        });
-        return false;
-    }
-
-    adminIdToken = liff.getIDToken();
-
-    if (!adminIdToken) {
-        throw new Error("LINE ID token is unavailable");
-    }
-
-    const response = await fetch(
-        `${API_BASE_URL}/auth/admin`,
-        {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                id_token: adminIdToken,
-            }),
-        }
-    );
-
-    if (!response.ok) {
-        throw new Error(
-            `Admin authentication failed: ${response.status}`
-        );
-    }
-
-    return true;
-}
-
-const API_BASE_URL =
-    "https://salon-book-production.up.railway.app";
+/* =========================================
+   LIFF 登入邏輯與 API_BASE_URL 已抽到 admin-common.js。
+========================================= */
 
 const staffList =
     document.querySelector("#staff-list");

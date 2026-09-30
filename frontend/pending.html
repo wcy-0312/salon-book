@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>SalonBook 待確認預約</title>
+
+    <link
+        rel="stylesheet"
+        href="admin-app.css"
+    >
+</head>
+
+<body>
+
+    <main class="app-container no-bottom-nav">
+
+        <div class="top-bar">
+            <a
+                id="back-link"
+                href="admin.html"
+                class="top-bar-back"
+            >‹</a>
+
+            <span class="top-bar-title">今日</span>
+        </div>
+
+        <div class="pending-title-row">
+            <span class="pending-title">待確認預約</span>
+            <span
+                class="pending-count-badge"
+                id="pending-count-badge"
+            >0</span>
+        </div>
+
+        <div id="pending-list">
+            <p class="state-message">載入中...</p>
+        </div>
+
+    </main>
+
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="admin-common.js"></script>
+    <script src="pending.js"></script>
+
+</body>
+
+</html>

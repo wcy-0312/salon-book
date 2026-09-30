@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>SalonBook 設計師管理</title>
+
+    <link
+        rel="stylesheet"
+        href="admin.css"
+    >
+</head>
+
+<body>
+
+    <main class="container">
+
+        <header class="header">
+            <div>
+                <h1>設計師管理</h1>
+                <p><a href="admin.html">← 返回預約管理</a></p>
+            </div>
+        </header>
+
+
+        <!-- 設計師清單 -->
+        <section class="section">
+
+            <div class="section-header">
+                <h2>所有設計師</h2>
+            </div>
+
+            <div
+                id="staff-list"
+                class="service-list"
+            >
+                <p class="loading">
+                    載入中...
+                </p>
+            </div>
+
+        </section>
+
+
+        <!-- 新增設計師 -->
+        <section class="section">
+
+            <div class="section-header">
+                <h2>新增設計師</h2>
+            </div>
+
+            <form
+                id="staff-form"
+                class="service-form"
+            >
+
+                <label class="service-field">
+                    姓名
+                    <input
+                        id="staff-name"
+                        type="text"
+                        maxlength="50"
+                        required
+                    >
+                </label>
+
+                <label class="service-field">
+                    職稱
+                    <input
+                        id="staff-title"
+                        type="text"
+                        maxlength="50"
+                        required
+                    >
+                </label>
+
+                <button
+                    type="submit"
+                    class="service-submit"
+                >
+                    新增設計師
+                </button>
+
+            </form>
+
+        </section>
+
+    </main>
+
+
+    <!-- 編輯設計師彈窗 -->
+    <div
+        id="staff-edit-overlay"
+        class="service-edit-overlay hidden"
+    >
+
+        <div class="service-edit-dialog">
+
+            <h2>編輯設計師</h2>
+
+            <form id="staff-edit-form">
+
+                <label class="service-field">
+                    姓名
+                    <input
+                        id="edit-staff-name"
+                        type="text"
+                        maxlength="50"
+                        required
+                    >
+                </label>
+
+                <label class="service-field">
+                    職稱
+                    <input
+                        id="edit-staff-title"
+                        type="text"
+                        maxlength="50"
+                        required
+                    >
+                </label>
+
+                <label class="service-field service-field-checkbox">
+                    <input
+                        id="edit-staff-active"
+                        type="checkbox"
+                    >
+                    啟用中
+                </label>
+
+                <div class="service-edit-actions">
+
+                    <button
+                        type="button"
+                        id="staff-edit-cancel"
+                        class="reject-button"
+                    >
+                        取消
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="confirm-button"
+                    >
+                        儲存
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
+    <script src="staff.js"></script>
+
+</body>
+
+</html>

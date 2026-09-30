@@ -23,15 +23,8 @@
             <section class="section">
                 <h2>選擇設計師</h2>
 
-                <div class="staff-list">
-                    <button class="staff-card selected" data-staff="andy" type="button">
-                        <div class="avatar">A</div>
-
-                        <div>
-                            <strong>Andy</strong>
-                            <span>髮型設計師</span>
-                        </div>
-                    </button>
+                <div id="staff-list" class="staff-list">
+                    <p class="loading">載入中...</p>
                 </div>
             </section>
 
@@ -127,7 +120,7 @@
 
                     <div class="booking-summary-row">
                         <span>設計師</span>
-                        <strong>Andy</strong>
+                        <strong id="confirm-staff"></strong>
                     </div>
 
                     <div class="booking-summary-row">
@@ -220,7 +213,7 @@
 
                     <div class="booking-summary-row">
                         <span>設計師</span>
-                        <strong>Andy</strong>
+                        <strong id="success-staff"></strong>
                     </div>
 
                     <div class="booking-summary-row">

@@ -66,6 +66,7 @@ class Staff(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     name: str
     title: str
+    is_active: bool = Field(default=True)
 
 
 class Service(SQLModel, table=True):
@@ -160,6 +161,17 @@ class ServiceUpdate(SQLModel):
     name: str | None = None
     price: int | None = None
     duration_minutes: int | None = None
+    is_active: bool | None = None
+
+
+class StaffCreate(SQLModel):
+    name: str
+    title: str
+
+
+class StaffUpdate(SQLModel):
+    name: str | None = None
+    title: str | None = None
     is_active: bool | None = None
 
 
@@ -728,11 +740,154 @@ def get_staff():
 
     with Session(engine) as session:
 
-        statement = select(Staff)
+        statement = select(Staff).where(
+            Staff.is_active == True
+        )
 
         staff = session.exec(
             statement
         ).all()
+
+        return staff
+
+
+@app.get(
+    "/admin/staff",
+    response_model=list[Staff],
+)
+def get_admin_staff(
+    authorization: str | None = Header(default=None),
+):
+    require_admin(authorization)
+
+    with Session(engine) as session:
+
+        statement = select(Staff).order_by(
+            Staff.name
+        )
+
+        staff = session.exec(
+            statement
+        ).all()
+
+        return staff
+
+
+def validate_staff_fields(
+    name: str | None,
+    title: str | None,
+):
+    if name is not None and not name.strip():
+        raise HTTPException(
+            status_code=422,
+            detail="name must not be empty",
+        )
+
+    if title is not None and not title.strip():
+        raise HTTPException(
+            status_code=422,
+            detail="title must not be empty",
+        )
+
+
+@app.post(
+    "/admin/staff",
+    response_model=Staff,
+)
+def create_staff(
+    data: StaffCreate,
+    authorization: str | None = Header(default=None),
+):
+    require_admin(authorization)
+
+    validate_staff_fields(
+        data.name,
+        data.title,
+    )
+
+    with Session(engine) as session:
+
+        staff = Staff(
+            name=data.name.strip(),
+            title=data.title.strip(),
+        )
+
+        session.add(staff)
+        session.commit()
+        session.refresh(staff)
+
+        return staff
+
+
+@app.patch(
+    "/admin/staff/{staff_id}",
+    response_model=Staff,
+)
+def update_staff(
+    staff_id: int,
+    data: StaffUpdate,
+    authorization: str | None = Header(default=None),
+):
+    require_admin(authorization)
+
+    validate_staff_fields(
+        data.name,
+        data.title,
+    )
+
+    with Session(engine) as session:
+
+        staff = session.get(
+            Staff,
+            staff_id,
+        )
+
+        if staff is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Staff not found",
+            )
+
+        # active → inactive 之前，確認沒有未來的 PENDING/CONFIRMED
+        # Booking，避免客人的預約被停用的設計師「偷偷」晾在那裡。
+        # inactive → active、以及其他欄位（name/title）的修改不受此限制。
+        if (
+            data.is_active is False
+            and staff.is_active
+        ):
+            future_active_bookings = session.exec(
+                select(Booking).where(
+                    Booking.staff_id == staff_id,
+                    Booking.start_at >= taipei_now(),
+                    Booking.status.in_([
+                        BookingStatus.PENDING,
+                        BookingStatus.CONFIRMED,
+                    ]),
+                )
+            ).first()
+
+            if future_active_bookings is not None:
+                raise HTTPException(
+                    status_code=409,
+                    detail=(
+                        "This staff member has upcoming pending or "
+                        "confirmed bookings; please resolve them "
+                        "before deactivating"
+                    ),
+                )
+
+        if data.name is not None:
+            staff.name = data.name.strip()
+
+        if data.title is not None:
+            staff.title = data.title.strip()
+
+        if data.is_active is not None:
+            staff.is_active = data.is_active
+
+        session.add(staff)
+        session.commit()
+        session.refresh(staff)
 
         return staff
 
@@ -938,6 +1093,12 @@ def create_booking(
             raise HTTPException(
                 status_code=404,
                 detail="Staff not found",
+            )
+
+        if not staff.is_active:
+            raise HTTPException(
+                status_code=409,
+                detail="Staff is no longer available",
             )
 
 
@@ -1285,6 +1446,14 @@ def get_availability(
                 detail="Staff not found",
             )
 
+        if not staff.is_active:
+            return AvailabilityResponse(
+                date=target_date,
+                staff_id=staff_id,
+                service_id=service_id,
+                slots=[],
+            )
+
 
         # -------------------------
         # Service
@@ -1464,6 +1633,13 @@ def get_availability_summary(
                 detail="Staff not found",
             )
 
+        if not staff.is_active:
+            return AvailabilitySummaryResponse(
+                staff_id=staff_id,
+                service_id=service_id,
+                available_dates=[],
+            )
+
 
         # -------------------------
         # Service
@@ -1613,6 +1789,7 @@ def get_bookings(
     date: date | None = None,
     upcoming_only: bool = False,
     limit: int | None = None,
+    staff_id: int | None = None,
     authorization: str | None = Header(default=None),
 ):
     require_admin(authorization)
@@ -1620,6 +1797,11 @@ def get_bookings(
     with Session(engine) as session:
 
         statement = select(Booking)
+
+        if staff_id is not None:
+            statement = statement.where(
+                Booking.staff_id == staff_id
+            )
 
         if status is not None:
             statement = statement.where(

@@ -228,7 +228,10 @@ datePicker.addEventListener(
 
 async function fetchBookings(params) {
 
-    const query = new URLSearchParams(params);
+    const query = new URLSearchParams({
+        staff_id: String(STAFF_ID),
+        ...params,
+    });
 
     const response = await fetch(
         `${API_BASE_URL}/bookings?${query}`,

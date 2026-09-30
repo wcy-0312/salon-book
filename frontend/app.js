@@ -6,6 +6,7 @@ const API_BASE_URL =
 const servicePage = document.querySelector("#service-page");
 const datetimePage = document.querySelector("#datetime-page");
 
+const staffListContainer = document.querySelector("#staff-list");
 const serviceListContainer = document.querySelector("#service-list");
 
 const summary = document.querySelector("#summary");
@@ -51,6 +52,9 @@ const customerPhone =
     document.querySelector("#customer-phone");
 
 
+const confirmStaff =
+    document.querySelector("#confirm-staff");
+
 const confirmService =
     document.querySelector("#confirm-service");
 
@@ -67,6 +71,9 @@ const confirmPrice =
     document.querySelector("#confirm-price");
 
 
+const successStaff =
+    document.querySelector("#success-staff");
+
 const successService =
     document.querySelector("#success-service");
 
@@ -80,6 +87,7 @@ const successPrice =
     document.querySelector("#success-price");
 
 
+let selectedStaff = null;
 let selectedService = null;
 let selectedDate = null;
 let selectedTime = null;
@@ -96,6 +104,130 @@ let availableSlots = {};
 
 // 目前月份的 availability summary（key: "YYYY-MM-DD", value: boolean）
 let monthAvailability = {};
+
+/* -------------------------
+   Staff
+------------------------- */
+
+async function loadStaff() {
+
+    staffListContainer.innerHTML =
+        '<p class="loading">載入中...</p>';
+
+    try {
+
+        const response = await fetch(
+            `${API_BASE_URL}/staff`
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `HTTP ${response.status}`
+            );
+        }
+
+        const staffList =
+            await response.json();
+
+        renderStaffCards(staffList);
+
+    } catch (error) {
+
+        console.error(
+            "Failed to load staff:",
+            error
+        );
+
+        staffListContainer.innerHTML =
+            '<p class="empty">無法載入設計師資料，請稍後再試</p>';
+    }
+}
+
+
+function renderStaffCards(staffList) {
+
+    staffListContainer.innerHTML = "";
+
+    if (staffList.length === 0) {
+
+        staffListContainer.innerHTML =
+            '<p class="empty">目前沒有可預約的設計師</p>';
+
+        return;
+    }
+
+    staffList.forEach((staff) => {
+
+        const card =
+            document.createElement("button");
+
+        card.type = "button";
+        card.className = "staff-card";
+
+        card.dataset.staff = staff.id;
+
+        card.innerHTML = `
+            <div class="avatar"></div>
+
+            <div>
+                <strong></strong>
+                <span></span>
+            </div>
+        `;
+
+        card.querySelector(".avatar").textContent =
+            staff.name.charAt(0);
+
+        card.querySelector("strong").textContent =
+            staff.name;
+
+        card.querySelector("span").textContent =
+            staff.title;
+
+        card.addEventListener("click", () => {
+
+            document
+                .querySelectorAll(".staff-card")
+                .forEach((item) => {
+                    item.classList.remove("selected");
+                });
+
+            card.classList.add("selected");
+
+            selectedStaff = {
+                id: staff.id,
+                name: staff.name,
+                title: staff.title,
+            };
+
+            updateServiceSelectionAvailability();
+
+        });
+
+        staffListContainer.appendChild(card);
+
+    });
+}
+
+
+function updateServiceSelectionAvailability() {
+
+    if (selectedStaff && selectedService) {
+        summary.textContent =
+            `${selectedStaff.name} · ${selectedService.name} · $${selectedService.price.toLocaleString()}`;
+
+        nextButton.disabled = false;
+
+    } else if (selectedStaff) {
+        summary.textContent = "請選擇服務";
+        nextButton.disabled = true;
+
+    } else {
+        summary.textContent = "請選擇設計師";
+        nextButton.disabled = true;
+    }
+}
+
 
 /* -------------------------
    Service
@@ -193,10 +325,7 @@ function renderServiceCards(services) {
                 duration: service.duration_minutes,
             };
 
-            summary.textContent =
-                `${selectedService.name} · $${selectedService.price.toLocaleString()}`;
-
-            nextButton.disabled = false;
+            updateServiceSelectionAvailability();
 
         });
 
@@ -206,6 +335,7 @@ function renderServiceCards(services) {
 }
 
 
+loadStaff();
 loadServices();
 
 
@@ -223,7 +353,7 @@ nextButton.addEventListener("click", async (event) => {
      */
     if (currentStep === 1) {
 
-        if (!selectedService) {
+        if (!selectedStaff || !selectedService) {
             return;
         }
 
@@ -231,7 +361,7 @@ nextButton.addEventListener("click", async (event) => {
         datetimePage.classList.remove("hidden");
 
         bookingServiceSummary.textContent =
-            `${selectedService.name} · $${selectedService.price.toLocaleString()}`;
+            `${selectedStaff.name} · ${selectedService.name} · $${selectedService.price.toLocaleString()}`;
 
         nextButton.textContent = "請選擇時段";
         nextButton.disabled = true;
@@ -302,7 +432,7 @@ nextButton.addEventListener("click", async (event) => {
                     },
 
                     body: JSON.stringify({
-                        staff_id: 1,
+                        staff_id: selectedStaff.id,
 
                         service_id: selectedService.id,
 
@@ -359,7 +489,7 @@ nextButton.addEventListener("click", async (event) => {
                 nextButton.disabled = true;
 
                 summary.textContent =
-                    `${selectedService.name} · $${selectedService.price.toLocaleString()}`;
+                    `${selectedStaff.name} · ${selectedService.name} · $${selectedService.price.toLocaleString()}`;
 
                 const slots = await fetchAvailability(
                     selectedDate
@@ -452,7 +582,7 @@ backButton.addEventListener("click", () => {
     timeSection.classList.add("hidden");
 
     summary.textContent =
-        `${selectedService.name} · $${selectedService.price.toLocaleString()}`;
+        `${selectedStaff.name} · ${selectedService.name} · $${selectedService.price.toLocaleString()}`;
 
     nextButton.textContent = "選擇日期";
     nextButton.disabled = false;
@@ -897,7 +1027,7 @@ bookingBackButton.addEventListener(
 async function fetchAvailability(dateString) {
 
     const params = new URLSearchParams({
-        staff_id: "1",
+        staff_id: String(selectedStaff.id),
         service_id: selectedService.id,
         target_date: dateString,
     });
@@ -938,7 +1068,7 @@ async function fetchAvailabilitySummary(
         );
 
     const params = new URLSearchParams({
-        staff_id: "1",
+        staff_id: String(selectedStaff.id),
         service_id: selectedService.id,
         start_date: startDateString,
         end_date: endDateString,
@@ -996,6 +1126,9 @@ function formatDisplayDate(dateString) {
 
 function renderBookingSummary() {
 
+    confirmStaff.textContent =
+        selectedStaff.name;
+
     confirmService.textContent =
         selectedService.name;
 
@@ -1015,6 +1148,9 @@ function renderBookingSummary() {
 
 
 function renderSuccessPage() {
+
+    successStaff.textContent =
+        selectedStaff.name;
 
     successService.textContent =
         selectedService.name;

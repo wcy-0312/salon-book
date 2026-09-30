@@ -1,5 +1,6 @@
 import os
 import httpx
+import uuid
 from pathlib import Path
 from datetime import date, datetime, time, timedelta
 from enum import Enum
@@ -72,6 +73,7 @@ class Service(SQLModel, table=True):
     name: str
     price: int
     duration_minutes: int
+    is_active: bool = Field(default=True)
 
 class Schedule(SQLModel, table=True):
     id: int | None = Field(
@@ -146,6 +148,19 @@ class BlockedTimeCreate(SQLModel):
     start_at: datetime
     end_at: datetime
     reason: str | None = None
+
+
+class ServiceCreate(SQLModel):
+    name: str
+    price: int
+    duration_minutes: int
+
+
+class ServiceUpdate(SQLModel):
+    name: str | None = None
+    price: int | None = None
+    duration_minutes: int | None = None
+    is_active: bool | None = None
 
 
 class AvailabilityResponse(SQLModel):
@@ -467,7 +482,9 @@ def get_services():
 
     with Session(engine) as session:
 
-        statement = select(Service)
+        statement = select(Service).where(
+            Service.is_active == True
+        )
 
         services = session.exec(
             statement
@@ -475,7 +492,134 @@ def get_services():
 
         return services
 
-    
+
+@app.get(
+    "/admin/services",
+    response_model=list[Service],
+)
+def get_admin_services(
+    authorization: str | None = Header(default=None),
+):
+    require_admin(authorization)
+
+    with Session(engine) as session:
+
+        statement = select(Service).order_by(
+            Service.name
+        )
+
+        services = session.exec(
+            statement
+        ).all()
+
+        return services
+
+
+def validate_service_fields(
+    name: str | None,
+    price: int | None,
+    duration_minutes: int | None,
+):
+    if name is not None and not name.strip():
+        raise HTTPException(
+            status_code=422,
+            detail="name must not be empty",
+        )
+
+    if price is not None and price < 0:
+        raise HTTPException(
+            status_code=422,
+            detail="price must be >= 0",
+        )
+
+    if duration_minutes is not None and duration_minutes <= 0:
+        raise HTTPException(
+            status_code=422,
+            detail="duration_minutes must be > 0",
+        )
+
+
+@app.post(
+    "/admin/services",
+    response_model=Service,
+)
+def create_service(
+    data: ServiceCreate,
+    authorization: str | None = Header(default=None),
+):
+    require_admin(authorization)
+
+    validate_service_fields(
+        data.name,
+        data.price,
+        data.duration_minutes,
+    )
+
+    with Session(engine) as session:
+
+        service = Service(
+            id=f"svc_{uuid.uuid4().hex[:12]}",
+            name=data.name.strip(),
+            price=data.price,
+            duration_minutes=data.duration_minutes,
+        )
+
+        session.add(service)
+        session.commit()
+        session.refresh(service)
+
+        return service
+
+
+@app.patch(
+    "/admin/services/{service_id}",
+    response_model=Service,
+)
+def update_service(
+    service_id: str,
+    data: ServiceUpdate,
+    authorization: str | None = Header(default=None),
+):
+    require_admin(authorization)
+
+    validate_service_fields(
+        data.name,
+        data.price,
+        data.duration_minutes,
+    )
+
+    with Session(engine) as session:
+
+        service = session.get(
+            Service,
+            service_id,
+        )
+
+        if service is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Service not found",
+            )
+
+        if data.name is not None:
+            service.name = data.name.strip()
+
+        if data.price is not None:
+            service.price = data.price
+
+        if data.duration_minutes is not None:
+            service.duration_minutes = data.duration_minutes
+
+        if data.is_active is not None:
+            service.is_active = data.is_active
+
+        session.add(service)
+        session.commit()
+        session.refresh(service)
+
+        return service
+
+
 # =========================================================
 # Bookings
 # =========================================================
@@ -546,6 +690,12 @@ def create_booking(
             raise HTTPException(
                 status_code=404,
                 detail="Service not found",
+            )
+
+        if not service.is_active:
+            raise HTTPException(
+                status_code=409,
+                detail="Service is no longer available",
             )
 
 
@@ -892,6 +1042,14 @@ def get_availability(
                 detail="Service not found",
             )
 
+        if not service.is_active:
+            return AvailabilityResponse(
+                date=target_date,
+                staff_id=staff_id,
+                service_id=service_id,
+                slots=[],
+            )
+
 
         # -------------------------
         # Schedule
@@ -1061,6 +1219,13 @@ def get_availability_summary(
             raise HTTPException(
                 status_code=404,
                 detail="Service not found",
+            )
+
+        if not service.is_active:
+            return AvailabilitySummaryResponse(
+                staff_id=staff_id,
+                service_id=service_id,
+                available_dates=[],
             )
 
 

@@ -6,7 +6,7 @@ const API_BASE_URL =
 const servicePage = document.querySelector("#service-page");
 const datetimePage = document.querySelector("#datetime-page");
 
-const serviceCards = document.querySelectorAll(".service-card");
+const serviceListContainer = document.querySelector("#service-list");
 
 const summary = document.querySelector("#summary");
 const nextButton = document.querySelector("#next-button");
@@ -101,31 +101,112 @@ let monthAvailability = {};
    Service
 ------------------------- */
 
-serviceCards.forEach((card) => {
+async function loadServices() {
 
-    card.addEventListener("click", () => {
+    serviceListContainer.innerHTML =
+        '<p class="loading">載入中...</p>';
 
-        serviceCards.forEach((item) => {
-            item.classList.remove("selected");
+    try {
+
+        const response = await fetch(
+            `${API_BASE_URL}/services`
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `HTTP ${response.status}`
+            );
+        }
+
+        const services =
+            await response.json();
+
+        renderServiceCards(services);
+
+    } catch (error) {
+
+        console.error(
+            "Failed to load services:",
+            error
+        );
+
+        serviceListContainer.innerHTML =
+            '<p class="empty">無法載入服務資料，請稍後再試</p>';
+    }
+}
+
+
+function renderServiceCards(services) {
+
+    serviceListContainer.innerHTML = "";
+
+    if (services.length === 0) {
+
+        serviceListContainer.innerHTML =
+            '<p class="empty">目前沒有可預約的服務</p>';
+
+        return;
+    }
+
+    services.forEach((service) => {
+
+        const card =
+            document.createElement("button");
+
+        card.type = "button";
+        card.className = "service-card";
+
+        card.dataset.service = service.id;
+        card.dataset.price = service.price;
+        card.dataset.duration = service.duration_minutes;
+
+        const durationText =
+            service.duration_minutes >= 60
+                ? `約 ${Math.floor(service.duration_minutes / 60)} 小時${service.duration_minutes % 60 ? ` ${service.duration_minutes % 60} 分鐘` : ""}`
+                : `約 ${service.duration_minutes} 分鐘`;
+
+        card.innerHTML = `
+            <div>
+                <strong></strong>
+                <span>${durationText}</span>
+            </div>
+
+            <span class="price">$${service.price.toLocaleString()}</span>
+        `;
+
+        card.querySelector("strong").textContent = service.name;
+
+        card.addEventListener("click", () => {
+
+            document
+                .querySelectorAll(".service-card")
+                .forEach((item) => {
+                    item.classList.remove("selected");
+                });
+
+            card.classList.add("selected");
+
+            selectedService = {
+                id: service.id,
+                name: service.name,
+                price: service.price,
+                duration: service.duration_minutes,
+            };
+
+            summary.textContent =
+                `${selectedService.name} · $${selectedService.price.toLocaleString()}`;
+
+            nextButton.disabled = false;
+
         });
 
-        card.classList.add("selected");
-
-        selectedService = {
-            id: card.dataset.service,
-            name: card.querySelector("strong").textContent,
-            price: Number(card.dataset.price),
-            duration: Number(card.dataset.duration),
-        };
-
-        summary.textContent =
-            `${selectedService.name} · $${selectedService.price.toLocaleString()}`;
-
-        nextButton.disabled = false;
+        serviceListContainer.appendChild(card);
 
     });
+}
 
-});
+
+loadServices();
 
 
 /* -------------------------

@@ -657,3 +657,247 @@ button {
         width: 100%;
     }
 }
+
+
+/* =========================================
+   Service management
+========================================= */
+
+.header a {
+    color: #666;
+    text-decoration: none;
+}
+
+.header a:hover {
+    text-decoration: underline;
+}
+
+.service-list {
+    display: flex;
+    flex-direction: column;
+
+    gap: 12px;
+}
+
+.service-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 16px;
+
+    padding: 17px;
+
+    background: #ffffff;
+
+    border: 1px solid #e8e8e4;
+    border-radius: 14px;
+}
+
+.service-card.inactive {
+    opacity: 0.55;
+}
+
+.service-card-info h3 {
+    margin: 0 0 5px;
+
+    font-size: 16px;
+    font-weight: 650;
+}
+
+.service-card-info p {
+    margin: 3px 0;
+
+    color: #696969;
+    font-size: 14px;
+}
+
+.service-status {
+    display: inline-flex;
+
+    align-items: center;
+
+    margin-top: 4px;
+
+    padding: 2px 9px;
+
+    border-radius: 999px;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    background: #e5f6ec;
+    color: #1f8a4c;
+}
+
+.service-status.inactive {
+    background: #f1f1ef;
+    color: #888;
+}
+
+.service-card-actions {
+    flex-shrink: 0;
+}
+
+.service-edit-button {
+    min-height: 38px;
+
+    padding: 8px 13px;
+
+    border: 1px solid #dededb;
+    border-radius: 9px;
+
+    background: #ffffff;
+    color: #555;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition: background 0.15s ease;
+}
+
+.service-edit-button:hover {
+    background: #f4f4f1;
+}
+
+.service-form {
+    display: flex;
+    flex-direction: column;
+
+    gap: 12px;
+
+    padding: 16px;
+
+    background: #ffffff;
+
+    border: 1px solid #e8e8e4;
+    border-radius: 14px;
+}
+
+.service-field {
+    display: flex;
+    flex-direction: column;
+
+    gap: 6px;
+
+    color: #555;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.service-field input[type="text"],
+.service-field input[type="number"] {
+    padding: 9px 11px;
+
+    border: 1px solid #dededb;
+    border-radius: 9px;
+
+    font: inherit;
+    font-weight: 400;
+
+    color: #202020;
+}
+
+.service-field-checkbox {
+    flex-direction: row;
+    align-items: center;
+
+    gap: 8px;
+}
+
+.service-field-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+
+    gap: 12px;
+}
+
+.service-submit {
+    min-height: 42px;
+
+    padding: 10px 13px;
+
+    border: 1px solid #242424;
+    border-radius: 9px;
+
+    background: #242424;
+    color: #ffffff;
+
+    font-size: 14px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition: background 0.15s ease;
+}
+
+.service-submit:hover {
+    background: #3a3a3a;
+}
+
+.service-edit-overlay {
+    position: fixed;
+    inset: 0;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    padding: 20px;
+
+    background: rgba(0, 0, 0, 0.4);
+
+    z-index: 100;
+}
+
+.service-edit-overlay.hidden {
+    display: none;
+}
+
+.service-edit-dialog {
+    width: 100%;
+    max-width: 420px;
+
+    padding: 20px;
+
+    background: #ffffff;
+
+    border-radius: 16px;
+}
+
+.service-edit-dialog h2 {
+    margin: 0 0 16px;
+
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.service-edit-dialog form {
+    display: flex;
+    flex-direction: column;
+
+    gap: 14px;
+}
+
+.service-edit-actions {
+    display: flex;
+
+    justify-content: flex-end;
+
+    gap: 8px;
+}
+
+.service-edit-actions button {
+    min-height: 42px;
+
+    padding: 10px 16px;
+
+    border-radius: 9px;
+
+    font-size: 14px;
+    font-weight: 600;
+
+    cursor: pointer;
+}

@@ -104,6 +104,9 @@ const staffSelect =
 const scheduleNavLink =
     document.querySelector("#schedule-nav-link");
 
+const servicesNavLink =
+    document.querySelector("#services-nav-link");
+
 
 let currentStaffId = null;
 
@@ -141,6 +144,14 @@ function updateScheduleNavLink() {
     if (currentStaffId !== null) {
         scheduleNavLink.href =
             `schedule.html?staff_id=${currentStaffId}`;
+    }
+}
+
+
+function updateServicesNavLink() {
+    if (currentStaffId !== null) {
+        servicesNavLink.href =
+            `services.html?staff_id=${currentStaffId}`;
     }
 }
 
@@ -216,6 +227,7 @@ async function loadStaffSwitcher() {
 
         updateUrlStaffId(currentStaffId);
         updateScheduleNavLink();
+        updateServicesNavLink();
 
     } catch (error) {
 
@@ -248,6 +260,7 @@ staffSelect.addEventListener(
 
         updateUrlStaffId(currentStaffId);
         updateScheduleNavLink();
+        updateServicesNavLink();
 
         await loadAllBookingSections();
         await loadCalendarMonth();

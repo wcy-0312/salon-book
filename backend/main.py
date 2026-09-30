@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 from fastapi import Depends, FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Field, Session, SQLModel, create_engine, select
+from sqlalchemy import UniqueConstraint
 from contextlib import asynccontextmanager
 
 
@@ -72,9 +73,39 @@ class Staff(SQLModel, table=True):
 class Service(SQLModel, table=True):
     id: str = Field(primary_key=True)
     name: str
+    is_active: bool = Field(default=True)
+
+
+class StaffService(SQLModel, table=True):
+    """
+    設計師與服務的關聯：每位設計師可以為自己提供的服務設定
+    專屬的 price / duration_minutes。同一個 staff_id + service_id
+    最多只能有一筆設定，由下方 unique constraint 強制保證；
+    constraint 名稱必須與 migration
+    57798a2ffe54_add_staff_service_table.py 裡建立的
+    'uq_staffservice_staff_id_service_id' 一致，否則
+    `alembic check` 會偵測到 model metadata 與實際 DB schema
+    不一致。
+    """
+
+    __table_args__ = (
+        UniqueConstraint(
+            "staff_id",
+            "service_id",
+            name="uq_staffservice_staff_id_service_id",
+        ),
+    )
+
+    id: int | None = Field(default=None, primary_key=True)
+
+    staff_id: int
+    service_id: str
+
     price: int
     duration_minutes: int
+
     is_active: bool = Field(default=True)
+
 
 class Schedule(SQLModel, table=True):
     id: int | None = Field(
@@ -153,15 +184,22 @@ class BlockedTimeCreate(SQLModel):
 
 class ServiceCreate(SQLModel):
     name: str
-    price: int
-    duration_minutes: int
 
 
 class ServiceUpdate(SQLModel):
     name: str | None = None
+    is_active: bool | None = None
+
+
+class StaffServiceUpsert(SQLModel):
+    """
+    Admin 設定「某設計師是否提供某服務」的請求格式。
+    price / duration_minutes 只在 is_active 為 True 時需要。
+    """
+
     price: int | None = None
     duration_minutes: int | None = None
-    is_active: bool | None = None
+    is_active: bool
 
 
 class StaffCreate(SQLModel):
@@ -209,6 +247,33 @@ class AdminAuthRequest(SQLModel):
     id_token: str
 
 
+class StaffServiceOffering(SQLModel):
+    """
+    客戶端看到的「某設計師提供的某項服務」：Service 本身的
+    id/name，加上該設計師專屬的 price/duration_minutes。
+    """
+
+    id: str
+    name: str
+    price: int
+    duration_minutes: int
+
+
+class AdminStaffServiceItem(SQLModel):
+    """
+    Admin 服務管理頁面用：某個 Service 本身的資訊，加上
+    「目前選中的設計師」是否提供、以及該設計師的 price/duration
+    （若尚未設定則為 None）。
+    """
+
+    service_id: str
+    service_name: str
+    service_is_active: bool
+    staff_service_is_active: bool
+    price: int | None = None
+    duration_minutes: int | None = None
+
+
 class MyBookingResponse(SQLModel):
     id: int
     staff_name: str
@@ -254,47 +319,44 @@ def seed_data():
         # -------------------------
         # Services
         # -------------------------
+        # Service 只描述服務本身（name/is_active），價格與服務時間
+        # 屬於每位設計師自己的 StaffService，見下方 Andy 的預設值。
 
-        services = [
-            Service(
-                id="cut",
-                name="剪髮",
-                price=600,
-                duration_minutes=60,
-            ),
-
-            Service(
-                id="perm",
-                name="燙髮",
-                price=800,
-                duration_minutes=180,
-            ),
-
-            Service(
-                id="color",
-                name="染髮",
-                price=1200,
-                duration_minutes=180,
-            ),
-
-            Service(
-                id="care",
-                name="護髮",
-                price=1000,
-                duration_minutes=120,
-            ),
+        default_services = [
+            ("cut", "剪髮", 600, 60),
+            ("perm", "燙髮", 800, 180),
+            ("color", "染髮", 1200, 180),
+            ("care", "護髮", 1000, 120),
         ]
 
-
-        for service in services:
+        for service_id, name, default_price, default_duration in default_services:
 
             existing_service = session.get(
                 Service,
-                service.id,
+                service_id,
             )
 
             if existing_service is None:
-                session.add(service)
+                session.add(
+                    Service(
+                        id=service_id,
+                        name=name,
+                    )
+                )
+
+            # 只在資料庫第一次初始化時，幫 Andy 建立對應的
+            # StaffService（沿用原本 Service 上的預設價格/時間）。
+            # 之後 Admin 對 Andy 服務設定的任何修改都不會被覆蓋。
+            if is_first_time_setup:
+
+                session.add(
+                    StaffService(
+                        staff_id=1,
+                        service_id=service_id,
+                        price=default_price,
+                        duration_minutes=default_duration,
+                    )
+                )
 
         # -------------------------
         # Schedule
@@ -896,20 +958,56 @@ def update_staff(
 # Services
 # =========================================================
 
-@app.get("/services")
-def get_services():
+@app.get(
+    "/services",
+    response_model=list[StaffServiceOffering],
+)
+def get_services(
+    staff_id: int,
+):
+    """
+    客戶端取得「某設計師目前可預約的服務」，包含該設計師專屬的
+    price / duration_minutes。只回傳 Staff active、Service active、
+    StaffService active 三者皆成立的項目。
+    """
 
     with Session(engine) as session:
 
-        statement = select(Service).where(
-            Service.is_active == True
+        staff = session.get(
+            Staff,
+            staff_id,
         )
 
-        services = session.exec(
-            statement
-        ).all()
+        if staff is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Staff not found",
+            )
 
-        return services
+        if not staff.is_active:
+            return []
+
+        statement = (
+            select(StaffService, Service)
+            .where(
+                StaffService.staff_id == staff_id,
+                StaffService.is_active == True,
+                StaffService.service_id == Service.id,
+                Service.is_active == True,
+            )
+        )
+
+        rows = session.exec(statement).all()
+
+        return [
+            StaffServiceOffering(
+                id=service.id,
+                name=service.name,
+                price=staff_service.price,
+                duration_minutes=staff_service.duration_minutes,
+            )
+            for staff_service, service in rows
+        ]
 
 
 @app.get(
@@ -934,27 +1032,204 @@ def get_admin_services(
         return services
 
 
+@app.get(
+    "/admin/staff-services",
+    response_model=list[AdminStaffServiceItem],
+)
+def get_admin_staff_services(
+    staff_id: int,
+    authorization: str | None = Header(default=None),
+):
+    """
+    Admin 服務管理頁面用：列出所有 Service，並附上「目前選中的
+    設計師」是否提供、以及該設計師專屬的 price/duration（尚未
+    設定則為 None）。
+    """
+
+    require_admin(authorization)
+
+    with Session(engine) as session:
+
+        staff = session.get(
+            Staff,
+            staff_id,
+        )
+
+        if staff is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Staff not found",
+            )
+
+        all_services = session.exec(
+            select(Service).order_by(Service.name)
+        ).all()
+
+        staff_services_by_service_id = {
+            staff_service.service_id: staff_service
+            for staff_service in session.exec(
+                select(StaffService).where(
+                    StaffService.staff_id == staff_id,
+                )
+            ).all()
+        }
+
+        items = []
+
+        for service in all_services:
+
+            staff_service = staff_services_by_service_id.get(
+                service.id
+            )
+
+            items.append(
+                AdminStaffServiceItem(
+                    service_id=service.id,
+                    service_name=service.name,
+                    service_is_active=service.is_active,
+                    staff_service_is_active=(
+                        staff_service.is_active
+                        if staff_service is not None
+                        else False
+                    ),
+                    price=(
+                        staff_service.price
+                        if staff_service is not None
+                        else None
+                    ),
+                    duration_minutes=(
+                        staff_service.duration_minutes
+                        if staff_service is not None
+                        else None
+                    ),
+                )
+            )
+
+        return items
+
+
+@app.put(
+    "/admin/staff-services/{staff_id}/{service_id}",
+    response_model=AdminStaffServiceItem,
+)
+def upsert_staff_service(
+    staff_id: int,
+    service_id: str,
+    data: StaffServiceUpsert,
+    authorization: str | None = Header(default=None),
+):
+    """
+    Admin 設定「某設計師是否提供某服務」，以及該設計師專屬的
+    price / duration_minutes。is_active=True 時 price/duration_minutes
+    為必填；is_active=False 只是停用這筆設定，不會刪除資料列。
+    """
+
+    require_admin(authorization)
+
+    with Session(engine) as session:
+
+        staff = session.get(
+            Staff,
+            staff_id,
+        )
+
+        if staff is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Staff not found",
+            )
+
+        service = session.get(
+            Service,
+            service_id,
+        )
+
+        if service is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Service not found",
+            )
+
+        if data.is_active:
+
+            if data.price is None or data.duration_minutes is None:
+                raise HTTPException(
+                    status_code=422,
+                    detail=(
+                        "price and duration_minutes are required "
+                        "when is_active is true"
+                    ),
+                )
+
+            if data.price < 0:
+                raise HTTPException(
+                    status_code=422,
+                    detail="price must be >= 0",
+                )
+
+            if data.duration_minutes <= 0:
+                raise HTTPException(
+                    status_code=422,
+                    detail="duration_minutes must be > 0",
+                )
+
+        staff_service = session.exec(
+            select(StaffService).where(
+                StaffService.staff_id == staff_id,
+                StaffService.service_id == service_id,
+            )
+        ).first()
+
+        if staff_service is None and not data.is_active:
+            # 從沒設定過、這次也只是要設為「不提供」，不需要寫入
+            # 任何資料列。
+            return AdminStaffServiceItem(
+                service_id=service.id,
+                service_name=service.name,
+                service_is_active=service.is_active,
+                staff_service_is_active=False,
+                price=None,
+                duration_minutes=None,
+            )
+
+        if staff_service is None:
+            staff_service = StaffService(
+                staff_id=staff_id,
+                service_id=service_id,
+                price=data.price,
+                duration_minutes=data.duration_minutes,
+                is_active=data.is_active,
+            )
+        else:
+            staff_service.is_active = data.is_active
+
+            if data.price is not None:
+                staff_service.price = data.price
+
+            if data.duration_minutes is not None:
+                staff_service.duration_minutes = data.duration_minutes
+
+        session.add(staff_service)
+        session.commit()
+        session.refresh(staff_service)
+
+        return AdminStaffServiceItem(
+            service_id=service.id,
+            service_name=service.name,
+            service_is_active=service.is_active,
+            staff_service_is_active=staff_service.is_active,
+            price=staff_service.price,
+            duration_minutes=staff_service.duration_minutes,
+        )
+
+
 def validate_service_fields(
     name: str | None,
-    price: int | None,
-    duration_minutes: int | None,
 ):
     if name is not None and not name.strip():
         raise HTTPException(
             status_code=422,
             detail="name must not be empty",
-        )
-
-    if price is not None and price < 0:
-        raise HTTPException(
-            status_code=422,
-            detail="price must be >= 0",
-        )
-
-    if duration_minutes is not None and duration_minutes <= 0:
-        raise HTTPException(
-            status_code=422,
-            detail="duration_minutes must be > 0",
         )
 
 
@@ -970,8 +1245,6 @@ def create_service(
 
     validate_service_fields(
         data.name,
-        data.price,
-        data.duration_minutes,
     )
 
     with Session(engine) as session:
@@ -979,8 +1252,6 @@ def create_service(
         service = Service(
             id=f"svc_{uuid.uuid4().hex[:12]}",
             name=data.name.strip(),
-            price=data.price,
-            duration_minutes=data.duration_minutes,
         )
 
         session.add(service)
@@ -1003,8 +1274,6 @@ def update_service(
 
     validate_service_fields(
         data.name,
-        data.price,
-        data.duration_minutes,
     )
 
     with Session(engine) as session:
@@ -1022,12 +1291,6 @@ def update_service(
 
         if data.name is not None:
             service.name = data.name.strip()
-
-        if data.price is not None:
-            service.price = data.price
-
-        if data.duration_minutes is not None:
-            service.duration_minutes = data.duration_minutes
 
         if data.is_active is not None:
             service.is_active = data.is_active
@@ -1125,6 +1388,28 @@ def create_booking(
 
 
         # -------------------------
+        # StaffService
+        # -------------------------
+        # price / duration_minutes 一律以該設計師的 StaffService 為準，
+        # 不可信任客戶端傳入的任何價格/時長，也不再直接使用 Service
+        # 上的全域欄位（該欄位已移除）。如果這位設計師沒有提供這項
+        # 服務，即使 staff_id 與 service_id 個別都合法，也一律拒絕。
+
+        staff_service = session.exec(
+            select(StaffService).where(
+                StaffService.staff_id == data.staff_id,
+                StaffService.service_id == data.service_id,
+            )
+        ).first()
+
+        if staff_service is None or not staff_service.is_active:
+            raise HTTPException(
+                status_code=409,
+                detail="This staff does not offer the selected service",
+            )
+
+
+        # -------------------------
         # Schedule
         # -------------------------
 
@@ -1157,7 +1442,7 @@ def create_booking(
         booking_end = (
             booking_start
             + timedelta(
-                minutes=service.duration_minutes
+                minutes=staff_service.duration_minutes
             )
         )
 
@@ -1252,8 +1537,8 @@ def create_booking(
 
             service_id=service.id,
             service_name=service.name,
-            price=service.price,
-            duration_minutes=service.duration_minutes,
+            price=staff_service.price,
+            duration_minutes=staff_service.duration_minutes,
 
             customer_name=data.customer_name,
             customer_phone=data.customer_phone,
@@ -1480,6 +1765,28 @@ def get_availability(
 
 
         # -------------------------
+        # StaffService
+        # -------------------------
+        # 時長必須用該設計師專屬的 duration_minutes，不同設計師
+        # 提供同一項服務可以有不同時長。
+
+        staff_service = session.exec(
+            select(StaffService).where(
+                StaffService.staff_id == staff_id,
+                StaffService.service_id == service_id,
+            )
+        ).first()
+
+        if staff_service is None or not staff_service.is_active:
+            return AvailabilityResponse(
+                date=target_date,
+                staff_id=staff_id,
+                service_id=service_id,
+                slots=[],
+            )
+
+
+        # -------------------------
         # Schedule
         # -------------------------
 
@@ -1553,7 +1860,7 @@ def get_availability(
         slots = compute_available_slots(
             target_date=target_date,
             schedule=schedule,
-            service_duration_minutes=service.duration_minutes,
+            service_duration_minutes=staff_service.duration_minutes,
             bookings=bookings,
             blocked_times=blocked_times,
             now=taipei_now(),
@@ -1665,6 +1972,25 @@ def get_availability_summary(
 
 
         # -------------------------
+        # StaffService
+        # -------------------------
+
+        staff_service = session.exec(
+            select(StaffService).where(
+                StaffService.staff_id == staff_id,
+                StaffService.service_id == service_id,
+            )
+        ).first()
+
+        if staff_service is None or not staff_service.is_active:
+            return AvailabilitySummaryResponse(
+                staff_id=staff_id,
+                service_id=service_id,
+                available_dates=[],
+            )
+
+
+        # -------------------------
         # Schedule（整週只有 7 種 weekday，一次查完）
         # -------------------------
 
@@ -1758,7 +2084,7 @@ def get_availability_summary(
             slots = compute_available_slots(
                 target_date=current_date,
                 schedule=schedule,
-                service_duration_minutes=service.duration_minutes,
+                service_duration_minutes=staff_service.duration_minutes,
                 bookings=bookings_for_day,
                 blocked_times=blocked_times_for_day,
                 now=now,

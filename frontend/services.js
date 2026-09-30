@@ -45,6 +45,31 @@ async function initializeAdminLiff() {
 const API_BASE_URL =
     "https://salon-book-production.up.railway.app";
 
+let currentStaffId = null;
+
+
+function getStaffIdFromUrl() {
+    const params =
+        new URLSearchParams(window.location.search);
+
+    const value = params.get("staff_id");
+
+    if (!value) {
+        return null;
+    }
+
+    const parsed = Number(value);
+
+    return Number.isInteger(parsed) ? parsed : null;
+}
+
+
+const servicesStaffTitle =
+    document.querySelector("#services-staff-title");
+
+const backToAdminLink =
+    document.querySelector("#back-to-admin-link");
+
 const serviceList =
     document.querySelector("#service-list");
 
@@ -54,29 +79,26 @@ const serviceForm =
 const serviceNameInput =
     document.querySelector("#service-name");
 
-const servicePriceInput =
-    document.querySelector("#service-price");
-
-const serviceDurationInput =
-    document.querySelector("#service-duration");
-
 const serviceEditOverlay =
     document.querySelector("#service-edit-overlay");
 
 const serviceEditForm =
     document.querySelector("#service-edit-form");
 
-const editServiceNameInput =
-    document.querySelector("#edit-service-name");
+const serviceEditTitle =
+    document.querySelector("#service-edit-title");
+
+const editServiceOfferedInput =
+    document.querySelector("#edit-service-offered");
+
+const serviceEditFields =
+    document.querySelector("#service-edit-fields");
 
 const editServicePriceInput =
     document.querySelector("#edit-service-price");
 
 const editServiceDurationInput =
     document.querySelector("#edit-service-duration");
-
-const editServiceActiveInput =
-    document.querySelector("#edit-service-active");
 
 const serviceEditCancelButton =
     document.querySelector("#service-edit-cancel");
@@ -86,18 +108,18 @@ let editingServiceId = null;
 
 
 /* =========================================
-   Load services
+   Staff
 ========================================= */
 
-async function loadServices() {
+async function loadCurrentStaff() {
 
-    serviceList.innerHTML =
-        '<p class="loading">載入中...</p>';
+    backToAdminLink.href =
+        `admin.html?staff_id=${currentStaffId}`;
 
     try {
 
         const response = await fetch(
-            `${API_BASE_URL}/admin/services`,
+            `${API_BASE_URL}/admin/staff`,
             {
                 headers: {
                     Authorization: `Bearer ${adminIdToken}`,
@@ -111,10 +133,105 @@ async function loadServices() {
             );
         }
 
-        const services =
+        const staffList =
             await response.json();
 
-        renderServices(services);
+        const staff = staffList.find(
+            (item) => item.id === currentStaffId
+        );
+
+        servicesStaffTitle.textContent =
+            staff
+                ? `${staff.name} 的服務`
+                : "服務管理";
+
+    } catch (error) {
+
+        console.error(
+            "Failed to load staff info:",
+            error
+        );
+
+        servicesStaffTitle.textContent =
+            "服務管理";
+    }
+}
+
+
+async function resolveInitialStaffId() {
+
+    const staffIdFromUrl =
+        getStaffIdFromUrl();
+
+    if (staffIdFromUrl !== null) {
+        return staffIdFromUrl;
+    }
+
+    const response = await fetch(
+        `${API_BASE_URL}/admin/staff`,
+        {
+            headers: {
+                Authorization: `Bearer ${adminIdToken}`,
+            },
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error(
+            `HTTP ${response.status}`
+        );
+    }
+
+    const staffList =
+        await response.json();
+
+    if (staffList.length === 0) {
+        throw new Error("目前沒有設計師");
+    }
+
+    const andy = staffList.find(
+        (staff) => staff.name === "Andy"
+    );
+
+    const defaultStaff =
+        andy
+        ?? staffList.find((staff) => staff.is_active)
+        ?? staffList[0];
+
+    return defaultStaff.id;
+}
+
+
+/* =========================================
+   Load staff services
+========================================= */
+
+async function loadServices() {
+
+    serviceList.innerHTML =
+        '<p class="loading">載入中...</p>';
+
+    try {
+
+        const response = await fetch(
+            `${API_BASE_URL}/admin/staff-services?staff_id=${currentStaffId}`,
+            {
+                headers: {
+                    Authorization: `Bearer ${adminIdToken}`,
+                },
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `HTTP ${response.status}`
+            );
+        }
+
+        const items =
+            await response.json();
+
+        renderServices(items);
 
     } catch (error) {
 
@@ -133,50 +250,61 @@ async function loadServices() {
    Render
 ========================================= */
 
-function renderServices(services) {
+function renderServices(items) {
 
     serviceList.innerHTML = "";
 
-    if (services.length === 0) {
+    if (items.length === 0) {
 
         serviceList.innerHTML =
-            '<p class="empty">尚未建立任何服務</p>';
+            '<p class="empty">尚未建立任何服務項目</p>';
 
         return;
     }
 
 
-    services.forEach((service) => {
+    items.forEach((item) => {
+
+        const isOffered =
+            item.service_is_active && item.staff_service_is_active;
 
         const card =
             document.createElement("article");
 
-        card.className = service.is_active
+        card.className = isOffered
             ? "service-card"
             : "service-card inactive";
 
-
         const durationText =
-            service.duration_minutes >= 60
-                ? `約 ${Math.floor(service.duration_minutes / 60)} 小時${service.duration_minutes % 60 ? ` ${service.duration_minutes % 60} 分鐘` : ""}`
-                : `約 ${service.duration_minutes} 分鐘`;
+            item.duration_minutes != null
+                ? (
+                    item.duration_minutes >= 60
+                        ? `約 ${Math.floor(item.duration_minutes / 60)} 小時${item.duration_minutes % 60 ? ` ${item.duration_minutes % 60} 分鐘` : ""}`
+                        : `約 ${item.duration_minutes} 分鐘`
+                )
+                : null;
 
+        const detailText = isOffered
+            ? `$${item.price.toLocaleString()} · ${durationText}`
+            : (
+                item.service_is_active
+                    ? "尚未提供這項服務"
+                    : "服務項目已停用"
+            );
 
         card.innerHTML = `
             <div class="service-card-info">
 
                 <h3>
-                    ${escapeHtml(service.name)}
+                    ${escapeHtml(item.service_name)}
                 </h3>
 
                 <p>
-                    $${service.price.toLocaleString()}
-                    ·
-                    ${durationText}
+                    ${detailText}
                 </p>
 
-                <span class="service-status ${service.is_active ? "" : "inactive"}">
-                    ${service.is_active ? "啟用中" : "已停用"}
+                <span class="service-status ${isOffered ? "" : "inactive"}">
+                    ${isOffered ? "提供中" : "未提供"}
                 </span>
 
             </div>
@@ -186,7 +314,8 @@ function renderServices(services) {
                 <button
                     type="button"
                     class="service-edit-button"
-                    data-id="${service.id}"
+                    data-id="${item.service_id}"
+                    ${item.service_is_active ? "" : "disabled"}
                 >
                     編輯
                 </button>
@@ -198,11 +327,11 @@ function renderServices(services) {
 
     });
 
-    bindServiceEditButtons(services);
+    bindServiceEditButtons(items);
 }
 
 
-function bindServiceEditButtons(services) {
+function bindServiceEditButtons(items) {
 
     document
         .querySelectorAll(".service-edit-button")
@@ -212,12 +341,12 @@ function bindServiceEditButtons(services) {
                 "click",
                 () => {
 
-                    const service = services.find(
-                        (item) => item.id === button.dataset.id
+                    const item = items.find(
+                        (candidate) => candidate.service_id === button.dataset.id
                     );
 
-                    if (service) {
-                        openServiceEditDialog(service);
+                    if (item) {
+                        openServiceEditDialog(item);
                     }
 
                 }
@@ -231,14 +360,45 @@ function bindServiceEditButtons(services) {
    Edit dialog
 ========================================= */
 
-function openServiceEditDialog(service) {
+function updateServiceEditFieldsVisibility() {
+    const offered =
+        editServiceOfferedInput.checked;
 
-    editingServiceId = service.id;
+    serviceEditFields.classList.toggle(
+        "hidden",
+        !offered
+    );
 
-    editServiceNameInput.value = service.name;
-    editServicePriceInput.value = service.price;
-    editServiceDurationInput.value = service.duration_minutes;
-    editServiceActiveInput.checked = service.is_active;
+    editServicePriceInput.required = offered;
+    editServiceDurationInput.required = offered;
+}
+
+
+editServiceOfferedInput.addEventListener(
+    "change",
+    updateServiceEditFieldsVisibility
+);
+
+
+function openServiceEditDialog(item) {
+
+    editingServiceId = item.service_id;
+
+    serviceEditTitle.textContent =
+        `編輯「${item.service_name}」`;
+
+    const isOffered =
+        item.staff_service_is_active;
+
+    editServiceOfferedInput.checked = isOffered;
+
+    editServicePriceInput.value =
+        item.price != null ? item.price : "";
+
+    editServiceDurationInput.value =
+        item.duration_minutes != null ? item.duration_minutes : "";
+
+    updateServiceEditFieldsVisibility();
 
     serviceEditOverlay.classList.remove("hidden");
 }
@@ -278,52 +438,52 @@ serviceEditForm.addEventListener(
             return;
         }
 
-        const name =
-            editServiceNameInput.value.trim();
+        const isOffered =
+            editServiceOfferedInput.checked;
 
-        const price =
-            Number(editServicePriceInput.value);
+        const payload = {
+            is_active: isOffered,
+        };
 
-        const durationMinutes =
-            Number(editServiceDurationInput.value);
+        if (isOffered) {
 
-        if (!name) {
-            alert("名稱不可為空");
-            return;
-        }
+            const price =
+                Number(editServicePriceInput.value);
 
-        if (
-            !Number.isFinite(price) ||
-            price < 0
-        ) {
-            alert("價格必須大於等於 0");
-            return;
-        }
+            const durationMinutes =
+                Number(editServiceDurationInput.value);
 
-        if (
-            !Number.isFinite(durationMinutes) ||
-            durationMinutes <= 0
-        ) {
-            alert("所需時間必須大於 0");
-            return;
+            if (
+                !Number.isFinite(price) ||
+                price < 0
+            ) {
+                alert("價格必須大於等於 0");
+                return;
+            }
+
+            if (
+                !Number.isFinite(durationMinutes) ||
+                durationMinutes <= 0
+            ) {
+                alert("所需時間必須大於 0");
+                return;
+            }
+
+            payload.price = price;
+            payload.duration_minutes = durationMinutes;
         }
 
         try {
 
             const response = await fetch(
-                `${API_BASE_URL}/admin/services/${editingServiceId}`,
+                `${API_BASE_URL}/admin/staff-services/${currentStaffId}/${editingServiceId}`,
                 {
-                    method: "PATCH",
+                    method: "PUT",
                     headers: {
                         "Content-Type": "application/json",
                         Authorization: `Bearer ${adminIdToken}`,
                     },
-                    body: JSON.stringify({
-                        name,
-                        price,
-                        duration_minutes: durationMinutes,
-                        is_active: editServiceActiveInput.checked,
-                    }),
+                    body: JSON.stringify(payload),
                 }
             );
 
@@ -345,7 +505,7 @@ serviceEditForm.addEventListener(
         } catch (error) {
 
             console.error(
-                "Failed to update service:",
+                "Failed to update staff service:",
                 error
             );
 
@@ -358,7 +518,7 @@ serviceEditForm.addEventListener(
 
 
 /* =========================================
-   Create service
+   Create a brand new service item
 ========================================= */
 
 serviceForm.addEventListener(
@@ -370,30 +530,8 @@ serviceForm.addEventListener(
         const name =
             serviceNameInput.value.trim();
 
-        const price =
-            Number(servicePriceInput.value);
-
-        const durationMinutes =
-            Number(serviceDurationInput.value);
-
         if (!name) {
             alert("名稱不可為空");
-            return;
-        }
-
-        if (
-            !Number.isFinite(price) ||
-            price < 0
-        ) {
-            alert("價格必須大於等於 0");
-            return;
-        }
-
-        if (
-            !Number.isFinite(durationMinutes) ||
-            durationMinutes <= 0
-        ) {
-            alert("所需時間必須大於 0");
             return;
         }
 
@@ -409,8 +547,6 @@ serviceForm.addEventListener(
                     },
                     body: JSON.stringify({
                         name,
-                        price,
-                        duration_minutes: durationMinutes,
                     }),
                 }
             );
@@ -474,6 +610,10 @@ async function initializeServicesPage() {
             return;
         }
 
+        currentStaffId =
+            await resolveInitialStaffId();
+
+        await loadCurrentStaff();
         await loadServices();
 
     } catch (error) {

@@ -1071,3 +1071,12 @@ button {
 
     font: inherit;
 }
+
+#service-edit-fields.hidden {
+    display: none;
+}
+
+.service-edit-button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}

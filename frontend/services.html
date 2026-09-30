@@ -23,17 +23,17 @@
 
         <header class="header">
             <div>
-                <h1>服務管理</h1>
-                <p><a href="admin.html">← 返回預約管理</a></p>
+                <h1 id="services-staff-title">服務管理</h1>
+                <p><a id="back-to-admin-link" href="admin.html">← 返回預約管理</a></p>
             </div>
         </header>
 
 
-        <!-- 服務清單 -->
+        <!-- 目前設計師的服務清單 -->
         <section class="section">
 
             <div class="section-header">
-                <h2>所有服務</h2>
+                <h2>提供的服務</h2>
             </div>
 
             <div
@@ -48,11 +48,11 @@
         </section>
 
 
-        <!-- 新增服務 -->
+        <!-- 新增全新服務（不會自動指派給任何設計師） -->
         <section class="section">
 
             <div class="section-header">
-                <h2>新增服務</h2>
+                <h2>新增服務項目</h2>
             </div>
 
             <form
@@ -70,47 +70,25 @@
                     >
                 </label>
 
-                <div class="service-field-row">
-
-                    <label class="service-field">
-                        價格
-                        <input
-                            id="service-price"
-                            type="number"
-                            min="0"
-                            step="1"
-                            required
-                        >
-                    </label>
-
-                    <label class="service-field">
-                        所需時間（分鐘）
-                        <input
-                            id="service-duration"
-                            type="number"
-                            min="1"
-                            step="1"
-                            required
-                        >
-                    </label>
-
-                </div>
-
                 <button
                     type="submit"
                     class="service-submit"
                 >
-                    新增服務
+                    新增服務項目
                 </button>
 
             </form>
+
+            <p class="calendar-hint">
+                新增後尚未指派給任何設計師，請在上方清單為需要提供這項服務的設計師設定價格與時間。
+            </p>
 
         </section>
 
     </main>
 
 
-    <!-- 編輯服務彈窗 -->
+    <!-- 編輯「該設計師的服務」彈窗 -->
     <div
         id="service-edit-overlay"
         class="service-edit-overlay hidden"
@@ -118,21 +96,22 @@
 
         <div class="service-edit-dialog">
 
-            <h2>編輯服務</h2>
+            <h2 id="service-edit-title">編輯服務</h2>
 
             <form id="service-edit-form">
 
-                <label class="service-field">
-                    名稱
+                <label class="service-field service-field-checkbox">
                     <input
-                        id="edit-service-name"
-                        type="text"
-                        maxlength="50"
-                        required
+                        id="edit-service-offered"
+                        type="checkbox"
                     >
+                    提供這項服務
                 </label>
 
-                <div class="service-field-row">
+                <div
+                    id="service-edit-fields"
+                    class="service-field-row"
+                >
 
                     <label class="service-field">
                         價格
@@ -141,7 +120,6 @@
                             type="number"
                             min="0"
                             step="1"
-                            required
                         >
                     </label>
 
@@ -152,19 +130,10 @@
                             type="number"
                             min="1"
                             step="1"
-                            required
                         >
                     </label>
 
                 </div>
-
-                <label class="service-field service-field-checkbox">
-                    <input
-                        id="edit-service-active"
-                        type="checkbox"
-                    >
-                    啟用中
-                </label>
 
                 <div class="service-edit-actions">
 

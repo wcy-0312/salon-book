@@ -200,7 +200,19 @@ function renderStaffCards(staffList) {
                 title: staff.title,
             };
 
+            // 切換設計師時，服務清單與價格/時間都不同，
+            // 不能沿用上一位設計師已選取的服務。
+            selectedService = null;
+
+            document
+                .querySelectorAll(".service-card")
+                .forEach((item) => {
+                    item.classList.remove("selected");
+                });
+
             updateServiceSelectionAvailability();
+
+            loadServices();
 
         });
 
@@ -235,13 +247,23 @@ function updateServiceSelectionAvailability() {
 
 async function loadServices() {
 
+    if (!selectedStaff) {
+        serviceListContainer.innerHTML =
+            '<p class="empty">請先選擇設計師</p>';
+        return;
+    }
+
     serviceListContainer.innerHTML =
         '<p class="loading">載入中...</p>';
 
     try {
 
+        const params = new URLSearchParams({
+            staff_id: String(selectedStaff.id),
+        });
+
         const response = await fetch(
-            `${API_BASE_URL}/services`
+            `${API_BASE_URL}/services?${params}`
         );
 
         if (!response.ok) {

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>SalonBook 我的預約</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <main class="container">
+
+        <header class="header">
+            <h1>我的預約</h1>
+        </header>
+
+        <section id="loading-section" class="section">
+            <p>載入中...</p>
+        </section>
+
+        <section id="error-section" class="section hidden">
+            <p id="error-message">無法載入預約資料</p>
+        </section>
+
+        <section id="booking-section" class="section hidden">
+
+            <div class="status-badge" id="status-badge"></div>
+
+            <div class="booking-summary-card">
+
+                <div class="booking-summary-row">
+                    <span>設計師</span>
+                    <strong id="booking-staff"></strong>
+                </div>
+
+                <div class="booking-summary-row">
+                    <span>服務</span>
+                    <strong id="booking-service"></strong>
+                </div>
+
+                <div class="booking-summary-row">
+                    <span>日期</span>
+                    <strong id="booking-date"></strong>
+                </div>
+
+                <div class="booking-summary-row">
+                    <span>時間</span>
+                    <strong id="booking-time"></strong>
+                </div>
+
+                <div class="booking-summary-row price-row">
+                    <span>價格</span>
+                    <strong id="booking-price"></strong>
+                </div>
+
+            </div>
+
+            <button
+                id="cancel-button"
+                class="next-button hidden"
+                type="button"
+                style="width: 100%; margin-top: 24px;"
+            >
+                取消預約
+            </button>
+
+        </section>
+
+    </main>
+
+    <script
+        charset="utf-8"
+        src="https://static.line-scdn.net/liff/edge/2/sdk.js"
+    ></script>
+
+    <script src="booking.js"></script>
+</body>
+</html>

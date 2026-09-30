@@ -7,7 +7,7 @@ from enum import Enum
 from zoneinfo import ZoneInfo
 
 
-from fastapi import FastAPI, HTTPException, Header
+from fastapi import Depends, FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Field, Session, SQLModel, create_engine, select
 from contextlib import asynccontextmanager
@@ -195,6 +195,16 @@ class LineAuthResponse(SQLModel):
 
 class AdminAuthRequest(SQLModel):
     id_token: str
+
+
+class MyBookingResponse(SQLModel):
+    id: int
+    staff_name: str
+    service_name: str
+    price: int
+    duration_minutes: int
+    start_at: datetime
+    status: BookingStatus
 
 
 # =========================================================
@@ -407,9 +417,38 @@ def require_admin(
     return verify_admin(id_token)
 
 
-def send_line_message(
+def require_line_user(
+    authorization: str | None = Header(default=None),
+) -> str:
+    """
+    驗證 Authorization header 帶的 LINE ID token，回傳 LINE sub。
+    僅代表「這是一個合法登入的 LINE 使用者」，不代表擁有任何特定
+    Booking 的存取權；booking ownership 需要另外用
+    booking.line_user_id == sub 檢查。
+    """
+
+    if not authorization:
+        raise HTTPException(
+            status_code=401,
+            detail="Authorization header is required",
+        )
+
+    scheme, _, id_token = authorization.partition(" ")
+
+    if scheme.lower() != "bearer" or not id_token:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid authorization header",
+        )
+
+    line_payload = verify_line_id_token(id_token)
+
+    return line_payload["sub"]
+
+
+def push_line_messages(
     line_user_id: str,
-    message: str,
+    messages: list[dict],
 ) -> None:
     channel_access_token = os.getenv(
         "LINE_CHANNEL_ACCESS_TOKEN"
@@ -429,12 +468,7 @@ def send_line_message(
         },
         json={
             "to": line_user_id,
-            "messages": [
-                {
-                    "type": "text",
-                    "text": message,
-                }
-            ],
+            "messages": messages,
         },
         timeout=10.0,
     )
@@ -444,6 +478,21 @@ def send_line_message(
             status_code=502,
             detail=f"LINE message failed: {response.text}",
         )
+
+
+def send_line_message(
+    line_user_id: str,
+    message: str,
+) -> None:
+    push_line_messages(
+        line_user_id,
+        [
+            {
+                "type": "text",
+                "text": message,
+            }
+        ],
+    )
 
 
 def try_send_line_message(
@@ -460,6 +509,202 @@ def try_send_line_message(
     except Exception as error:
         print(
             f"Failed to send LINE message: {error}"
+        )
+        return False
+
+
+def build_booking_view_url(booking_id: int) -> str:
+    """
+    產生開啟 SalonBook MINI App 單筆預約頁的網址。
+    使用既有 LIFF app（與客戶端預約流程共用同一個 LIFF ID），
+    深連結到 booking.html，不直接暴露 Railway API URL。
+
+    沿用目前實際使用的 MINI App domain（miniapp.line.me）。
+    LINE 會把 LIFF ID 之後的 path／query string 原樣轉發到該
+    LIFF app 設定的 Endpoint URL 上（這與 liff.line.me 是同一套
+    轉發機制，只是網域名稱不同），因此 booking_id 這個 query
+    string 會被保留並傳到 booking.html。
+    """
+
+    liff_id = os.getenv("LIFF_ID")
+
+    if not liff_id:
+        raise HTTPException(
+            status_code=500,
+            detail="LIFF_ID is not configured",
+        )
+
+    return f"https://miniapp.line.me/{liff_id}/booking.html?booking_id={booking_id}"
+
+
+def build_booking_confirmed_flex_message(
+    booking: "Booking",
+    staff_name: str,
+) -> dict:
+    booking_view_url = build_booking_view_url(booking.id)
+
+    return {
+        "type": "flex",
+        "altText": "您的預約已確認",
+        "contents": {
+            "type": "bubble",
+            "body": {
+                "type": "box",
+                "layout": "vertical",
+                "spacing": "md",
+                "contents": [
+                    {
+                        "type": "text",
+                        "text": "預約已確認",
+                        "weight": "bold",
+                        "size": "lg",
+                        "color": "#1f8a4c",
+                    },
+                    {
+                        "type": "separator",
+                        "margin": "md",
+                    },
+                    {
+                        "type": "box",
+                        "layout": "vertical",
+                        "margin": "md",
+                        "spacing": "sm",
+                        "contents": [
+                            {
+                                "type": "box",
+                                "layout": "baseline",
+                                "contents": [
+                                    {
+                                        "type": "text",
+                                        "text": "設計師",
+                                        "color": "#999999",
+                                        "size": "sm",
+                                        "flex": 2,
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": staff_name,
+                                        "size": "sm",
+                                        "flex": 5,
+                                        "wrap": True,
+                                    },
+                                ],
+                            },
+                            {
+                                "type": "box",
+                                "layout": "baseline",
+                                "contents": [
+                                    {
+                                        "type": "text",
+                                        "text": "服務",
+                                        "color": "#999999",
+                                        "size": "sm",
+                                        "flex": 2,
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": booking.service_name,
+                                        "size": "sm",
+                                        "flex": 5,
+                                        "wrap": True,
+                                    },
+                                ],
+                            },
+                            {
+                                "type": "box",
+                                "layout": "baseline",
+                                "contents": [
+                                    {
+                                        "type": "text",
+                                        "text": "日期",
+                                        "color": "#999999",
+                                        "size": "sm",
+                                        "flex": 2,
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": f"{booking.start_at:%Y/%m/%d}",
+                                        "size": "sm",
+                                        "flex": 5,
+                                    },
+                                ],
+                            },
+                            {
+                                "type": "box",
+                                "layout": "baseline",
+                                "contents": [
+                                    {
+                                        "type": "text",
+                                        "text": "時間",
+                                        "color": "#999999",
+                                        "size": "sm",
+                                        "flex": 2,
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": f"{booking.start_at:%H:%M}",
+                                        "size": "sm",
+                                        "flex": 5,
+                                    },
+                                ],
+                            },
+                            {
+                                "type": "box",
+                                "layout": "baseline",
+                                "contents": [
+                                    {
+                                        "type": "text",
+                                        "text": "價格",
+                                        "color": "#999999",
+                                        "size": "sm",
+                                        "flex": 2,
+                                    },
+                                    {
+                                        "type": "text",
+                                        "text": f"${booking.price}",
+                                        "size": "sm",
+                                        "flex": 5,
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            },
+            "footer": {
+                "type": "box",
+                "layout": "vertical",
+                "contents": [
+                    {
+                        "type": "button",
+                        "style": "primary",
+                        "color": "#242424",
+                        "action": {
+                            "type": "uri",
+                            "label": "查看／取消預約",
+                            "uri": booking_view_url,
+                        },
+                    },
+                ],
+            },
+        },
+    }
+
+
+def try_send_line_flex_message(
+    line_user_id: str,
+    flex_message: dict,
+) -> bool:
+    try:
+        push_line_messages(
+            line_user_id,
+            [flex_message],
+        )
+        return True
+
+    except Exception as error:
+        print(
+            f"Failed to send LINE flex message: {error}"
         )
         return False
 
@@ -1463,16 +1708,11 @@ def confirm_booking(
                 booking.staff_id,
             )
 
-            try_send_line_message(
+            try_send_line_flex_message(
                 booking.line_user_id,
-                (
-                    "SalonBook 預約確認\n\n"
-                    "您的預約已確認！\n\n"
-                    f"設計師：{staff.name}\n"
-                    f"服務：{booking.service_name}\n"
-                    f"日期：{booking.start_at:%Y/%m/%d}\n"
-                    f"時間：{booking.start_at:%H:%M}\n"
-                    f"價格：${booking.price}"
+                build_booking_confirmed_flex_message(
+                    booking,
+                    staff.name if staff else "",
                 ),
             )
 
@@ -1590,6 +1830,109 @@ def cancel_booking(
             )
 
         return booking
+
+
+# =========================================================
+# 客人查看／取消自己的預約
+# =========================================================
+# booking_id 不能作為授權依據：每個 endpoint 都必須先用
+# require_line_user() 驗證 LINE ID token 取得 sub，
+# 再確認 booking.line_user_id == sub 才能存取，否則一律視為
+# 404，不區分「不存在」與「不是本人的預約」，避免洩漏其他
+# 客人的預約是否存在。
+
+@app.get(
+    "/my-bookings/{booking_id}",
+    response_model=MyBookingResponse,
+)
+def get_my_booking(
+    booking_id: int,
+    line_user_id: str = Depends(require_line_user),
+):
+    with Session(engine) as session:
+
+        booking = session.get(
+            Booking,
+            booking_id,
+        )
+
+        if (
+            booking is None
+            or booking.line_user_id is None
+            or booking.line_user_id != line_user_id
+        ):
+            raise HTTPException(
+                status_code=404,
+                detail="Booking not found",
+            )
+
+        staff = session.get(
+            Staff,
+            booking.staff_id,
+        )
+
+        return MyBookingResponse(
+            id=booking.id,
+            staff_name=staff.name if staff else "",
+            service_name=booking.service_name,
+            price=booking.price,
+            duration_minutes=booking.duration_minutes,
+            start_at=booking.start_at,
+            status=booking.status,
+        )
+
+
+@app.patch(
+    "/my-bookings/{booking_id}/cancel",
+    response_model=MyBookingResponse,
+)
+def cancel_my_booking(
+    booking_id: int,
+    line_user_id: str = Depends(require_line_user),
+):
+    with Session(engine) as session:
+
+        booking = session.get(
+            Booking,
+            booking_id,
+        )
+
+        if (
+            booking is None
+            or booking.line_user_id is None
+            or booking.line_user_id != line_user_id
+        ):
+            raise HTTPException(
+                status_code=404,
+                detail="Booking not found",
+            )
+
+        if booking.status != BookingStatus.CONFIRMED:
+            raise HTTPException(
+                status_code=409,
+                detail="Only confirmed bookings can be cancelled",
+            )
+
+        booking.status = BookingStatus.CANCELLED
+
+        session.add(booking)
+        session.commit()
+        session.refresh(booking)
+
+        staff = session.get(
+            Staff,
+            booking.staff_id,
+        )
+
+        return MyBookingResponse(
+            id=booking.id,
+            staff_name=staff.name if staff else "",
+            service_name=booking.service_name,
+            price=booking.price,
+            duration_minutes=booking.duration_minutes,
+            start_at=booking.start_at,
+            status=booking.status,
+        )
 
 
 # =========================================================

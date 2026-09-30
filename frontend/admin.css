@@ -948,3 +948,84 @@ button {
 
     cursor: pointer;
 }
+
+
+/* =========================================
+   Weekly schedule
+========================================= */
+
+.schedule-week-list {
+    display: flex;
+    flex-direction: column;
+
+    background: #ffffff;
+
+    border: 1px solid #e8e8e4;
+    border-radius: 14px;
+
+    overflow: hidden;
+}
+
+.schedule-week-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 12px;
+
+    padding: 16px 17px;
+
+    border-bottom: 1px solid #eeeeeb;
+}
+
+.schedule-week-row:last-child {
+    border-bottom: none;
+}
+
+.schedule-week-info {
+    display: flex;
+    flex-direction: column;
+
+    gap: 3px;
+}
+
+.schedule-week-info strong {
+    font-size: 15px;
+    font-weight: 650;
+}
+
+.schedule-week-info span {
+    color: #777;
+    font-size: 13px;
+}
+
+.schedule-week-row.closed .schedule-week-info span {
+    color: #c0392b;
+}
+
+.schedule-edit-button {
+    min-height: 38px;
+
+    padding: 8px 13px;
+
+    border: 1px solid #dededb;
+    border-radius: 9px;
+
+    background: #ffffff;
+    color: #555;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition: background 0.15s ease;
+}
+
+.schedule-edit-button:hover {
+    background: #f4f4f1;
+}
+
+#schedule-edit-time-fields.hidden {
+    display: none;
+}

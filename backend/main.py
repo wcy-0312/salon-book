@@ -163,6 +163,20 @@ class ServiceUpdate(SQLModel):
     is_active: bool | None = None
 
 
+class ScheduleDay(SQLModel):
+    weekday: int
+    is_open: bool
+    start_time: time | None = None
+    end_time: time | None = None
+
+
+class ScheduleDayUpdate(SQLModel):
+    staff_id: int
+    is_open: bool
+    start_time: time | None = None
+    end_time: time | None = None
+
+
 class AvailabilityResponse(SQLModel):
     date: date
     staff_id: int
@@ -194,8 +208,15 @@ def seed_data():
         # -------------------------
         # Staff
         # -------------------------
+        # Staff(id=1) 是否已存在，代表這個資料庫是否已經初始化過。
+        # 這裡沒有任何刪除 Staff 的功能，所以可以安全地把它當成
+        # 「是否為全新資料庫」的一次性判斷依據，而不是用
+        # Schedule table 是否為空（Admin 把整週都設為公休時，
+        # Schedule table 會合法地變成空的，不代表尚未初始化）。
 
         staff = session.get(Staff, 1)
+
+        is_first_time_setup = staff is None
 
         if staff is None:
 
@@ -256,12 +277,11 @@ def seed_data():
         # -------------------------
         # Schedule
         # -------------------------
+        # 只在資料庫第一次初始化時建立預設營業時間。
+        # 之後即使 Admin 把整週都設成公休（Schedule table 變空），
+        # 重新啟動也不會被這裡誤判成「尚未初始化」而恢復預設值。
 
-        existing_schedules = session.exec(
-            select(Schedule)
-        ).all()
-
-        if not existing_schedules:
+        if is_first_time_setup:
 
             # Monday ~ Saturday
             for weekday in range(6):
@@ -1730,6 +1750,212 @@ def delete_blocked_time(
 
         session.delete(blocked_time)
         session.commit()
+
+
+# =========================================================
+# Schedule Management（每週固定營業時間）
+# =========================================================
+
+@app.get(
+    "/admin/schedule",
+    response_model=list[ScheduleDay],
+)
+def get_admin_schedule(
+    staff_id: int,
+    authorization: str | None = Header(default=None),
+):
+    require_admin(authorization)
+
+    with Session(engine) as session:
+
+        schedules_by_weekday = {
+            schedule.weekday: schedule
+            for schedule in session.exec(
+                select(Schedule).where(
+                    Schedule.staff_id == staff_id,
+                )
+            ).all()
+        }
+
+        week = []
+
+        for weekday in range(7):
+
+            schedule = schedules_by_weekday.get(weekday)
+
+            if schedule is None:
+                week.append(
+                    ScheduleDay(
+                        weekday=weekday,
+                        is_open=False,
+                    )
+                )
+            else:
+                week.append(
+                    ScheduleDay(
+                        weekday=weekday,
+                        is_open=True,
+                        start_time=schedule.start_time,
+                        end_time=schedule.end_time,
+                    )
+                )
+
+        return week
+
+
+def find_conflicting_bookings_for_weekday(
+    session: Session,
+    staff_id: int,
+    weekday: int,
+    new_start_time: time | None,
+    new_end_time: time | None,
+    now: datetime,
+) -> list[Booking]:
+    """
+    找出「這次 Schedule 變更會讓其落在新營業時間之外」的未來預約。
+    new_start_time / new_end_time 為 None 代表這天要設為公休，
+    此時當天任何未來預約都視為衝突。
+    """
+
+    future_bookings = session.exec(
+        select(Booking).where(
+            Booking.staff_id == staff_id,
+            Booking.start_at >= now,
+            Booking.status.in_([
+                BookingStatus.PENDING,
+                BookingStatus.CONFIRMED,
+            ]),
+        )
+    ).all()
+
+    conflicting = []
+
+    for booking in future_bookings:
+
+        if booking.start_at.weekday() != weekday:
+            continue
+
+        if new_start_time is None or new_end_time is None:
+            conflicting.append(booking)
+            continue
+
+        booking_date = booking.start_at.date()
+
+        new_work_start = datetime.combine(
+            booking_date,
+            new_start_time,
+        )
+
+        new_work_end = datetime.combine(
+            booking_date,
+            new_end_time,
+        )
+
+        booking_end = (
+            booking.start_at
+            + timedelta(minutes=booking.duration_minutes)
+        )
+
+        if (
+            booking.start_at < new_work_start
+            or booking_end > new_work_end
+        ):
+            conflicting.append(booking)
+
+    return conflicting
+
+
+@app.put(
+    "/admin/schedule/{weekday}",
+    response_model=ScheduleDay,
+)
+def update_schedule_day(
+    weekday: int,
+    data: ScheduleDayUpdate,
+    authorization: str | None = Header(default=None),
+):
+    require_admin(authorization)
+
+    if weekday < 0 or weekday > 6:
+        raise HTTPException(
+            status_code=422,
+            detail="weekday must be between 0 (Monday) and 6 (Sunday)",
+        )
+
+    if data.is_open:
+        if data.start_time is None or data.end_time is None:
+            raise HTTPException(
+                status_code=422,
+                detail="start_time and end_time are required when is_open is true",
+            )
+
+        if data.end_time <= data.start_time:
+            raise HTTPException(
+                status_code=422,
+                detail="end_time must be after start_time",
+            )
+
+    with Session(engine) as session:
+
+        now = taipei_now()
+
+        conflicting_bookings = find_conflicting_bookings_for_weekday(
+            session=session,
+            staff_id=data.staff_id,
+            weekday=weekday,
+            new_start_time=data.start_time if data.is_open else None,
+            new_end_time=data.end_time if data.is_open else None,
+            now=now,
+        )
+
+        if conflicting_bookings:
+            raise HTTPException(
+                status_code=409,
+                detail=(
+                    "This change would leave existing bookings outside "
+                    "working hours; please resolve those bookings first"
+                ),
+            )
+
+        existing_schedule = session.exec(
+            select(Schedule).where(
+                Schedule.staff_id == data.staff_id,
+                Schedule.weekday == weekday,
+            )
+        ).first()
+
+        if not data.is_open:
+
+            if existing_schedule is not None:
+                session.delete(existing_schedule)
+                session.commit()
+
+            return ScheduleDay(
+                weekday=weekday,
+                is_open=False,
+            )
+
+        if existing_schedule is None:
+            existing_schedule = Schedule(
+                staff_id=data.staff_id,
+                weekday=weekday,
+                start_time=data.start_time,
+                end_time=data.end_time,
+            )
+        else:
+            existing_schedule.start_time = data.start_time
+            existing_schedule.end_time = data.end_time
+
+        session.add(existing_schedule)
+        session.commit()
+        session.refresh(existing_schedule)
+
+        return ScheduleDay(
+            weekday=weekday,
+            is_open=True,
+            start_time=existing_schedule.start_time,
+            end_time=existing_schedule.end_time,
+        )
 
 
 # =========================================================

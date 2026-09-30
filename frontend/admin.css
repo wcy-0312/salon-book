@@ -6,6 +6,11 @@
     box-sizing: border-box;
 }
 
+html,
+body {
+    overflow-x: hidden;
+}
+
 body {
     margin: 0;
     background: #f7f7f5;
@@ -68,7 +73,15 @@ button {
     font-size: 14px;
 }
 
-.refresh-button {
+.header-actions {
+    display: flex;
+    align-items: center;
+
+    gap: 8px;
+}
+
+.refresh-button,
+.header-nav-button {
     padding: 9px 13px;
 
     border: 1px solid #dededb;
@@ -86,9 +99,26 @@ button {
         border-color 0.15s ease;
 }
 
-.refresh-button:hover {
+.refresh-button:hover,
+.header-nav-button:hover {
     background: #f1f1ef;
     border-color: #d0d0cc;
+}
+
+.header-nav-button {
+    display: inline-flex;
+    align-items: center;
+
+    text-decoration: none;
+
+    border-color: #242424;
+    color: #242424;
+    font-weight: 600;
+}
+
+.header-nav-button:hover {
+    background: #242424;
+    color: #ffffff;
 }
 
 
@@ -578,6 +608,18 @@ button {
         font-size: 24px;
     }
 
+    .header-actions {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .refresh-button,
+    .header-nav-button {
+        padding: 8px 10px;
+
+        font-size: 12px;
+    }
+
 
     /* Date */
 
@@ -780,6 +822,8 @@ button {
     display: flex;
     flex-direction: column;
 
+    min-width: 0;
+
     gap: 6px;
 
     color: #555;
@@ -789,6 +833,9 @@ button {
 
 .service-field input[type="text"],
 .service-field input[type="number"] {
+    width: 100%;
+    min-width: 0;
+
     padding: 9px 11px;
 
     border: 1px solid #dededb;
@@ -809,7 +856,7 @@ button {
 
 .service-field-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 
     gap: 12px;
 }

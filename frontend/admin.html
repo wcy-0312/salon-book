@@ -24,7 +24,7 @@
         <header class="header">
             <div>
                 <h1>SalonBook</h1>
-                <p>Andy · 預約管理</p>
+                <p id="current-staff-label">預約管理</p>
             </div>
 
             <div class="header-actions">
@@ -44,6 +44,7 @@
                 </a>
 
                 <a
+                    id="schedule-nav-link"
                     href="schedule.html"
                     class="header-nav-button"
                 >
@@ -60,6 +61,18 @@
 
             </div>
         </header>
+
+
+        <!-- 設計師切換 -->
+        <section class="staff-switcher">
+
+            <label for="staff-select">設計師</label>
+
+            <select id="staff-select">
+                <option>載入中...</option>
+            </select>
+
+        </section>
 
 
         <!-- 待確認：所有未來 PENDING，不受日期切換影響 -->

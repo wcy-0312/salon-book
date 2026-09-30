@@ -45,7 +45,24 @@ async function initializeAdminLiff() {
 const API_BASE_URL =
     "https://salon-book-production.up.railway.app";
 
-const STAFF_ID = 1;
+let currentStaffId = null;
+
+
+function getStaffIdFromUrl() {
+    const params =
+        new URLSearchParams(window.location.search);
+
+    const value = params.get("staff_id");
+
+    if (!value) {
+        return null;
+    }
+
+    const parsed = Number(value);
+
+    return Number.isInteger(parsed) ? parsed : null;
+}
+
 
 const WEEKDAY_LABELS = [
     "星期一",
@@ -56,6 +73,12 @@ const WEEKDAY_LABELS = [
     "星期六",
     "星期日",
 ];
+
+const scheduleStaffTitle =
+    document.querySelector("#schedule-staff-title");
+
+const backToAdminLink =
+    document.querySelector("#back-to-admin-link");
 
 const scheduleList =
     document.querySelector("#schedule-list");
@@ -89,6 +112,57 @@ let editingWeekday = null;
 
 
 /* =========================================
+   Staff
+========================================= */
+
+async function loadCurrentStaff() {
+
+    backToAdminLink.href =
+        `admin.html?staff_id=${currentStaffId}`;
+
+    try {
+
+        const response = await fetch(
+            `${API_BASE_URL}/admin/staff`,
+            {
+                headers: {
+                    Authorization: `Bearer ${adminIdToken}`,
+                },
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `HTTP ${response.status}`
+            );
+        }
+
+        const staffList =
+            await response.json();
+
+        const staff = staffList.find(
+            (item) => item.id === currentStaffId
+        );
+
+        scheduleStaffTitle.textContent =
+            staff
+                ? `${staff.name} 的每週營業時間`
+                : "每週營業時間";
+
+    } catch (error) {
+
+        console.error(
+            "Failed to load staff info:",
+            error
+        );
+
+        scheduleStaffTitle.textContent =
+            "每週營業時間";
+    }
+}
+
+
+/* =========================================
    Load schedule
 ========================================= */
 
@@ -100,7 +174,7 @@ async function loadSchedule() {
     try {
 
         const response = await fetch(
-            `${API_BASE_URL}/admin/schedule?staff_id=${STAFF_ID}`,
+            `${API_BASE_URL}/admin/schedule?staff_id=${currentStaffId}`,
             {
                 headers: {
                     Authorization: `Bearer ${adminIdToken}`,
@@ -296,7 +370,7 @@ scheduleEditForm.addEventListener(
             scheduleEditOpenInput.checked;
 
         const payload = {
-            staff_id: STAFF_ID,
+            staff_id: currentStaffId,
             is_open: isOpen,
         };
 
@@ -370,6 +444,50 @@ scheduleEditForm.addEventListener(
    Init
 ========================================= */
 
+async function resolveInitialStaffId() {
+
+    const staffIdFromUrl =
+        getStaffIdFromUrl();
+
+    if (staffIdFromUrl !== null) {
+        return staffIdFromUrl;
+    }
+
+    const response = await fetch(
+        `${API_BASE_URL}/admin/staff`,
+        {
+            headers: {
+                Authorization: `Bearer ${adminIdToken}`,
+            },
+        }
+    );
+
+    if (!response.ok) {
+        throw new Error(
+            `HTTP ${response.status}`
+        );
+    }
+
+    const staffList =
+        await response.json();
+
+    if (staffList.length === 0) {
+        throw new Error("目前沒有設計師");
+    }
+
+    const andy = staffList.find(
+        (staff) => staff.name === "Andy"
+    );
+
+    const defaultStaff =
+        andy
+        ?? staffList.find((staff) => staff.is_active)
+        ?? staffList[0];
+
+    return defaultStaff.id;
+}
+
+
 async function initializeSchedulePage() {
     try {
         const authenticated =
@@ -379,6 +497,10 @@ async function initializeSchedulePage() {
             return;
         }
 
+        currentStaffId =
+            await resolveInitialStaffId();
+
+        await loadCurrentStaff();
         await loadSchedule();
 
     } catch (error) {

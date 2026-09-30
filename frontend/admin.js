@@ -95,7 +95,165 @@ const calendarMonthLabel =
 const calendarGrid =
     document.querySelector("#calendar-grid");
 
-const STAFF_ID = 1;
+const currentStaffLabel =
+    document.querySelector("#current-staff-label");
+
+const staffSelect =
+    document.querySelector("#staff-select");
+
+const scheduleNavLink =
+    document.querySelector("#schedule-nav-link");
+
+
+let currentStaffId = null;
+
+
+function getStaffIdFromUrl() {
+    const params =
+        new URLSearchParams(window.location.search);
+
+    const value = params.get("staff_id");
+
+    if (!value) {
+        return null;
+    }
+
+    const parsed = Number(value);
+
+    return Number.isInteger(parsed) ? parsed : null;
+}
+
+
+function updateUrlStaffId(staffId) {
+    const url = new URL(window.location.href);
+
+    url.searchParams.set("staff_id", staffId);
+
+    window.history.replaceState(
+        null,
+        "",
+        url
+    );
+}
+
+
+function updateScheduleNavLink() {
+    if (currentStaffId !== null) {
+        scheduleNavLink.href =
+            `schedule.html?staff_id=${currentStaffId}`;
+    }
+}
+
+
+async function loadStaffSwitcher() {
+
+    try {
+
+        const response = await fetch(
+            `${API_BASE_URL}/admin/staff`,
+            {
+                headers: {
+                    Authorization: `Bearer ${adminIdToken}`,
+                },
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(
+                `HTTP ${response.status}`
+            );
+        }
+
+        const staffList =
+            await response.json();
+
+        if (staffList.length === 0) {
+            staffSelect.innerHTML =
+                '<option value="">目前沒有設計師</option>';
+            return;
+        }
+
+        const staffIdFromUrl =
+            getStaffIdFromUrl();
+
+        const andy = staffList.find(
+            (staff) => staff.name === "Andy"
+        );
+
+        const defaultStaff =
+            staffList.find(
+                (staff) => staff.id === staffIdFromUrl
+            )
+            ?? andy
+            ?? staffList.find((staff) => staff.is_active)
+            ?? staffList[0];
+
+        currentStaffId = defaultStaff.id;
+
+        staffSelect.innerHTML = "";
+
+        staffList.forEach((staff) => {
+
+            const option =
+                document.createElement("option");
+
+            option.value = staff.id;
+
+            option.textContent = staff.is_active
+                ? staff.name
+                : `${staff.name}（已停用）`;
+
+            if (staff.id === currentStaffId) {
+                option.selected = true;
+            }
+
+            staffSelect.appendChild(option);
+
+        });
+
+        currentStaffLabel.textContent =
+            `${defaultStaff.name} · 預約管理`;
+
+        updateUrlStaffId(currentStaffId);
+        updateScheduleNavLink();
+
+    } catch (error) {
+
+        console.error(
+            "Failed to load staff list:",
+            error
+        );
+
+        staffSelect.innerHTML =
+            '<option value="">無法載入設計師清單</option>';
+    }
+}
+
+
+staffSelect.addEventListener(
+    "change",
+    async () => {
+
+        const selectedId =
+            Number(staffSelect.value);
+
+        if (!Number.isInteger(selectedId)) {
+            return;
+        }
+
+        currentStaffId = selectedId;
+
+        currentStaffLabel.textContent =
+            `${staffSelect.options[staffSelect.selectedIndex].textContent.replace("（已停用）", "")} · 預約管理`;
+
+        updateUrlStaffId(currentStaffId);
+        updateScheduleNavLink();
+
+        await loadAllBookingSections();
+        await loadCalendarMonth();
+
+    }
+);
 
 
 let selectedDate = new Date();
@@ -229,7 +387,7 @@ datePicker.addEventListener(
 async function fetchBookings(params) {
 
     const query = new URLSearchParams({
-        staff_id: String(STAFF_ID),
+        staff_id: String(currentStaffId),
         ...params,
     });
 
@@ -387,7 +545,7 @@ async function loadCalendarMonth() {
     try {
 
         const response = await fetch(
-            `${API_BASE_URL}/blocked-times?staff_id=${STAFF_ID}&start_date=${formatDateForInput(monthStart)}&end_date=${formatDateForInput(monthEnd)}`,
+            `${API_BASE_URL}/blocked-times?staff_id=${currentStaffId}&start_date=${formatDateForInput(monthStart)}&end_date=${formatDateForInput(monthEnd)}`,
             {
                 headers: {
                     Authorization: `Bearer ${adminIdToken}`,
@@ -582,7 +740,7 @@ async function toggleDayOff(dayKey, isCurrentlyOff) {
                     Authorization: `Bearer ${adminIdToken}`,
                 },
                 body: JSON.stringify({
-                    staff_id: STAFF_ID,
+                    staff_id: currentStaffId,
                     start_at: `${dayKey}T00:00:00`,
                     end_at: `${formatDateForInput(nextDay)}T00:00:00`,
                 }),
@@ -1093,6 +1251,7 @@ async function initializeAdmin() {
             return;
         }
 
+        await loadStaffSwitcher();
         await loadAllBookingSections();
         await loadCalendarMonth();
 

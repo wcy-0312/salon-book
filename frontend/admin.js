@@ -73,6 +73,14 @@ const scheduleList =
 const scheduleCount =
     document.querySelector("#schedule-count");
 
+const upcomingList =
+    document.querySelector("#upcoming-list");
+
+const upcomingCount =
+    document.querySelector("#upcoming-count");
+
+const UPCOMING_LIMIT = 10;
+
 const calendarPrevMonthButton =
     document.querySelector("#calendar-prev-month");
 
@@ -152,7 +160,7 @@ function changeSelectedDate(days) {
     );
 
     updateDateDisplay();
-    loadBookings();
+    loadSchedule();
 }
 
 
@@ -207,7 +215,7 @@ datePicker.addEventListener(
             );
 
         updateDateDisplay();
-        loadBookings();
+        loadSchedule();
     }
 );
 
@@ -216,12 +224,12 @@ datePicker.addEventListener(
    Load bookings
 ========================================= */
 
-async function fetchBookings(status) {
-    const dateParam =
-        formatDateForInput(selectedDate);
+async function fetchBookings(params) {
+
+    const query = new URLSearchParams(params);
 
     const response = await fetch(
-        `${API_BASE_URL}/bookings?status=${status}&date=${dateParam}`,
+        `${API_BASE_URL}/bookings?${query}`,
         {
             headers: {
                 Authorization: `Bearer ${adminIdToken}`,
@@ -239,36 +247,75 @@ async function fetchBookings(status) {
 }
 
 
-async function loadBookings() {
+async function loadPendingBookings() {
 
     bookingList.innerHTML =
-        '<p class="loading">載入中...</p>';
-
-    scheduleList.innerHTML =
         '<p class="loading">載入中...</p>';
 
     try {
 
         const pendingBookings =
-            await fetchBookings("pending");
+            await fetchBookings({
+                status: "pending",
+                upcoming_only: "true",
+            });
 
         renderBookings(pendingBookings);
 
     } catch (error) {
 
         console.error(
-            "Failed to load bookings:",
+            "Failed to load pending bookings:",
             error
         );
 
         bookingList.innerHTML =
             '<p class="empty">無法載入預約資料</p>';
     }
+}
+
+
+async function loadUpcomingBookings() {
+
+    upcomingList.innerHTML =
+        '<p class="loading">載入中...</p>';
+
+    try {
+
+        const upcomingBookings =
+            await fetchBookings({
+                status: "confirmed",
+                upcoming_only: "true",
+                limit: String(UPCOMING_LIMIT),
+            });
+
+        renderUpcoming(upcomingBookings);
+
+    } catch (error) {
+
+        console.error(
+            "Failed to load upcoming bookings:",
+            error
+        );
+
+        upcomingList.innerHTML =
+            '<p class="empty">無法載入近期預約</p>';
+    }
+}
+
+
+async function loadSchedule() {
+
+    scheduleList.innerHTML =
+        '<p class="loading">載入中...</p>';
 
     try {
 
         const confirmedBookings =
-            await fetchBookings("confirmed");
+            await fetchBookings({
+                status: "confirmed",
+                date: formatDateForInput(selectedDate),
+            });
 
         renderSchedule(confirmedBookings);
 
@@ -282,6 +329,15 @@ async function loadBookings() {
         scheduleList.innerHTML =
             '<p class="empty">無法載入當日行程</p>';
     }
+}
+
+
+async function loadAllBookingSections() {
+    await Promise.all([
+        loadPendingBookings(),
+        loadUpcomingBookings(),
+        loadSchedule(),
+    ]);
 }
 
 
@@ -695,6 +751,87 @@ function renderBookings(bookings) {
 
 
 /* =========================================
+   Render upcoming
+========================================= */
+
+function renderUpcoming(bookings) {
+
+    upcomingList.innerHTML = "";
+
+    upcomingCount.textContent =
+        bookings.length;
+
+
+    if (bookings.length === 0) {
+
+        upcomingList.innerHTML =
+            '<p class="empty">目前沒有近期預約</p>';
+
+        return;
+    }
+
+
+    bookings.forEach((booking) => {
+
+        const card =
+            document.createElement("article");
+
+        card.className =
+            "booking-card";
+
+
+        const date =
+            new Date(booking.start_at);
+
+
+        const dateText =
+            `${date.getMonth() + 1}/${date.getDate()}`;
+
+        const timeText =
+            `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+
+
+        card.innerHTML = `
+            <div class="booking-time">
+
+                <strong>
+                    ${dateText}
+                </strong>
+
+                <span>
+                    ${timeText}
+                </span>
+
+            </div>
+
+
+            <div class="booking-info">
+
+                <h3>
+                    ${escapeHtml(booking.customer_name)}
+                </h3>
+
+                <p>
+                    ${escapeHtml(booking.service_name)}
+                    ·
+                    $${booking.price.toLocaleString()}
+                </p>
+
+                <p class="phone">
+                    ${escapeHtml(booking.customer_phone)}
+                </p>
+
+            </div>
+        `;
+
+
+        upcomingList.appendChild(card);
+
+    });
+}
+
+
+/* =========================================
    Render schedule
 ========================================= */
 
@@ -896,7 +1033,7 @@ async function updateBooking(
         }
 
 
-        await loadBookings();
+        await loadAllBookingSections();
 
     } catch (error) {
 
@@ -934,7 +1071,7 @@ function escapeHtml(value) {
 
 refreshButton.addEventListener(
     "click",
-    loadBookings
+    loadAllBookingSections
 );
 
 
@@ -951,7 +1088,7 @@ async function initializeAdmin() {
             return;
         }
 
-        await loadBookings();
+        await loadAllBookingSections();
         await loadCalendarMonth();
 
     } catch (error) {

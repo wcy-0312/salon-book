@@ -1187,6 +1187,8 @@ def get_availability_summary(
 def get_bookings(
     status: BookingStatus | None = None,
     date: date | None = None,
+    upcoming_only: bool = False,
+    limit: int | None = None,
     authorization: str | None = Header(default=None),
 ):
     require_admin(authorization)
@@ -1216,9 +1218,17 @@ def get_bookings(
                 Booking.start_at <= day_end,
             )
 
+        if upcoming_only:
+            statement = statement.where(
+                Booking.start_at >= taipei_now()
+            )
+
         statement = statement.order_by(
             Booking.start_at
         )
+
+        if limit is not None:
+            statement = statement.limit(limit)
 
         bookings = session.exec(
             statement

@@ -37,7 +37,63 @@
         </header>
 
 
-        <!-- 日期導覽 -->
+        <!-- 待確認：所有未來 PENDING，不受日期切換影響 -->
+        <section class="section">
+
+            <div class="section-header">
+
+                <h2>待確認預約</h2>
+
+                <span
+                    id="pending-count"
+                    class="count"
+                >
+                    0
+                </span>
+
+            </div>
+
+            <div
+                id="booking-list"
+                class="booking-list"
+            >
+                <p class="loading">
+                    載入中...
+                </p>
+            </div>
+
+        </section>
+
+
+        <!-- 近期預約：最近 10 筆 CONFIRMED，不受日期切換影響 -->
+        <section class="section">
+
+            <div class="section-header">
+
+                <h2>近期預約</h2>
+
+                <span
+                    id="upcoming-count"
+                    class="count count-secondary"
+                >
+                    0
+                </span>
+
+            </div>
+
+            <div
+                id="upcoming-list"
+                class="booking-list"
+            >
+                <p class="loading">
+                    載入中...
+                </p>
+            </div>
+
+        </section>
+
+
+        <!-- 日期導覽：僅影響下方「當日行程」 -->
         <section class="date-navigation">
 
             <button
@@ -76,40 +132,12 @@
         </section>
 
 
-        <!-- 待確認 -->
-        <section class="section">
-
-            <div class="section-header">
-
-                <h2>待確認預約</h2>
-
-                <span
-                    id="pending-count"
-                    class="count"
-                >
-                    0
-                </span>
-
-            </div>
-
-            <div
-                id="booking-list"
-                class="booking-list"
-            >
-                <p class="loading">
-                    載入中...
-                </p>
-            </div>
-
-        </section>
-
-
-        <!-- 當日行程 -->
+        <!-- 當日行程：目前選擇日期的 CONFIRMED -->
         <section class="section schedule-section">
 
             <div class="section-header">
 
-                <h2>今日行程</h2>
+                <h2>當日行程</h2>
 
                 <span
                     id="schedule-count"

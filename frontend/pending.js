@@ -125,7 +125,7 @@ function renderPendingList(bookings) {
                 <div class="booking-row-meta"></div>
             </span>
 
-            <span class="booking-row-chevron">›</span>
+            <span class="icon icon-18 booking-row-chevron">${ICONS.chevronRight()}</span>
         `;
 
         row.querySelector(".booking-row-avatar").textContent =
@@ -152,6 +152,10 @@ function renderPendingList(bookings) {
 
 async function initializePendingPage() {
     try {
+
+        document.querySelector("#back-icon").innerHTML =
+            ICONS.chevronLeft();
+
         const authenticated =
             await initializeAdminLiff();
 

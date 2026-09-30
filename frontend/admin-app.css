@@ -1,45 +1,62 @@
 /* =========================================
-   SalonBook Admin App — Design tokens
+   SalonBook Admin App — Design System v1
 
-   這是新版 Admin App（今日／待確認列表／Booking Detail／
+   新版 Admin App（今日／待確認列表／Booking Detail／
    Bottom Navigation）專用的樣式，與舊版 admin.css（仍給
    schedule.html / services.html / staff.html 使用）分開，
    避免這次的視覺調整影響尚未重做的頁面。
 
    顏色、字體、button 樣式都還不是最終版，因此全部走 CSS
-   variable，之後要統一調整時只需要改這裡。
+   variable / reusable class，之後要統一調整時只需要改這裡，
+   不應該回頭在各頁面加 magic value。
 ========================================= */
 
 :root {
-    /* Surface */
-    --color-bg: #f7f7f5;
+    /* ---- Surface（三層：底色 / 卡片 / 強調卡片）---- */
+    --color-bg: #f6f6f3;
     --color-surface: #ffffff;
-    --color-border: #ebebe7;
+    --color-surface-tint: #fbfbf9;
+    --color-border: #eceae4;
+    --color-border-strong: #dedad1;
 
-    /* Text */
-    --color-text: #1c1c1a;
-    --color-text-muted: #77776f;
-    --color-text-faint: #a3a39a;
+    /* ---- Text ---- */
+    --color-text: #211f1c;
+    --color-text-muted: #726f68;
+    --color-text-faint: #a6a29a;
+    --color-on-brand: #ffffff;
 
-    /* Brand */
-    --color-brand: #1f8a4c;
-    --color-brand-contrast: #ffffff;
+    /* ---- Brand ----
+       單一主要品牌色（用於 selected state、主要按鈕、強調數字），
+       但整個 App 不會被這個顏色主導。 */
+    --color-brand: #1f8a5c;
+    --color-brand-strong: #166b47;
+    --color-brand-tint: #e6f4ec;
 
-    /* Semantic status */
-    --color-warning-bg: #fdeee0;
-    --color-warning-fg: #c8672a;
-    --color-warning-icon: #e8863f;
+    /* ---- Semantic status ---- */
+    --color-pending-fg: #b5650f;
+    --color-pending-bg: #fdf0e0;
+    --color-pending-icon-bg: #f3a23a;
 
-    --color-success-bg: #e8f5ec;
-    --color-success-fg: #1f8a4c;
+    --color-success-fg: #1f8a5c;
+    --color-success-bg: #e6f4ec;
 
-    --color-danger-bg: #fdeceb;
     --color-danger-fg: #c0392b;
+    --color-danger-bg: #fbeae8;
 
-    --color-info-bg: #eef2fc;
-    --color-info-fg: #3c5fce;
+    /* ---- Semantic icon colors（僅用於 Booking Detail 的少量彩色 icon）---- */
+    --color-icon-customer-fg: #1f8a7c;
+    --color-icon-customer-bg: #e3f4f1;
 
-    /* Spacing scale */
+    --color-icon-calendar-fg: #d1592f;
+    --color-icon-calendar-bg: #fbe9e2;
+
+    --color-icon-service-fg: #3457c9;
+    --color-icon-service-bg: #e9edfb;
+
+    --color-icon-note-fg: #b5860f;
+    --color-icon-note-bg: #f8f0dd;
+
+    /* ---- Spacing scale ---- */
     --space-1: 4px;
     --space-2: 8px;
     --space-3: 12px;
@@ -47,18 +64,40 @@
     --space-5: 20px;
     --space-6: 24px;
     --space-8: 32px;
+    --space-10: 40px;
 
-    /* Radius */
-    --radius-sm: 8px;
+    /* ---- Radius scale ---- */
+    --radius-sm: 10px;
     --radius-md: 14px;
     --radius-lg: 20px;
     --radius-pill: 999px;
 
-    /* Shadow (kept minimal on purpose) */
-    --shadow-card: 0 1px 2px rgba(20, 20, 15, 0.04);
+    /* ---- Typography scale ----
+       page-title      App / page 標題（今日、預約詳情）
+       section-title   小節標題（下一位客人、今日行程）
+       item-title      清單/卡片主要資訊（客人姓名）
+       body            一般內文
+       body-secondary  次要資訊（電話、備註內容）
+       caption         最小輔助文字（badge、狀態標籤） */
+    --text-page-title: 20px;
+    --text-section-title: 13px;
+    --text-item-title: 15px;
+    --text-body: 14px;
+    --text-body-secondary: 13px;
+    --text-caption: 12px;
 
-    /* Bottom nav height, used to pad page content */
-    --bottom-nav-height: 64px;
+    --leading-tight: 1.25;
+    --leading-normal: 1.45;
+
+    /* ---- Button ---- */
+    --button-height: 48px;
+
+    /* ---- Shadow（刻意保持極輕）---- */
+    --shadow-card: 0 1px 2px rgba(30, 28, 20, 0.05);
+    --shadow-elevated: 0 2px 8px rgba(30, 28, 20, 0.07);
+
+    /* ---- Bottom nav ---- */
+    --bottom-nav-height: 58px;
 }
 
 
@@ -87,6 +126,11 @@ body {
         sans-serif;
 
     color: var(--color-text);
+
+    font-size: var(--text-body);
+    line-height: var(--leading-normal);
+
+    -webkit-font-smoothing: antialiased;
 }
 
 button {
@@ -96,6 +140,138 @@ button {
 a {
     color: inherit;
     text-decoration: none;
+}
+
+svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+
+/* =========================================
+   Typography utility classes
+========================================= */
+
+.text-page-title {
+    font-size: var(--text-page-title);
+    font-weight: 700;
+    line-height: var(--leading-tight);
+    letter-spacing: -0.2px;
+}
+
+.text-section-title {
+    font-size: var(--text-section-title);
+    font-weight: 600;
+    line-height: var(--leading-tight);
+    color: var(--color-text-muted);
+
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.text-item-title {
+    font-size: var(--text-item-title);
+    font-weight: 600;
+    line-height: var(--leading-tight);
+}
+
+.text-body {
+    font-size: var(--text-body);
+    font-weight: 400;
+    line-height: var(--leading-normal);
+}
+
+.text-body-secondary {
+    font-size: var(--text-body-secondary);
+    font-weight: 400;
+    line-height: var(--leading-normal);
+    color: var(--color-text-muted);
+}
+
+.text-caption {
+    font-size: var(--text-caption);
+    font-weight: 600;
+    line-height: var(--leading-tight);
+    color: var(--color-text-faint);
+}
+
+
+/* =========================================
+   Icon wrapper（用於統一 icon 尺寸、語意底色）
+========================================= */
+
+.icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+}
+
+.icon-16 { width: 16px; height: 16px; }
+.icon-18 { width: 18px; height: 18px; }
+.icon-20 { width: 20px; height: 20px; }
+.icon-24 { width: 24px; height: 24px; }
+
+.icon-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex-shrink: 0;
+
+    border-radius: 50%;
+}
+
+.icon-badge.size-sm {
+    width: 32px;
+    height: 32px;
+}
+
+.icon-badge.size-md {
+    width: 36px;
+    height: 36px;
+}
+
+.icon-badge.size-lg {
+    width: 44px;
+    height: 44px;
+}
+
+.icon-badge.is-customer {
+    background: var(--color-icon-customer-bg);
+    color: var(--color-icon-customer-fg);
+}
+
+.icon-badge.is-calendar {
+    background: var(--color-icon-calendar-bg);
+    color: var(--color-icon-calendar-fg);
+}
+
+.icon-badge.is-service {
+    background: var(--color-icon-service-bg);
+    color: var(--color-icon-service-fg);
+}
+
+.icon-badge.is-note {
+    background: var(--color-icon-note-bg);
+    color: var(--color-icon-note-fg);
+}
+
+.icon-badge.is-pending {
+    background: var(--color-pending-icon-bg);
+    color: #ffffff;
+}
+
+.icon-badge.is-success {
+    background: var(--color-success-fg);
+    color: #ffffff;
+}
+
+.icon-badge.is-danger {
+    background: var(--color-danger-fg);
+    color: #ffffff;
 }
 
 
@@ -109,7 +285,7 @@ a {
 
     margin: 0 auto;
 
-    padding: var(--space-6) var(--space-4) calc(var(--bottom-nav-height) + var(--space-6));
+    padding: var(--space-5) var(--space-4) calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px) + var(--space-6));
 }
 
 .app-container.no-bottom-nav {
@@ -125,9 +301,10 @@ a {
     display: flex;
     align-items: center;
 
-    gap: var(--space-2);
+    gap: var(--space-1);
 
-    margin-bottom: var(--space-5);
+    min-height: 40px;
+    margin-bottom: var(--space-4);
 }
 
 .top-bar-back {
@@ -135,8 +312,9 @@ a {
     align-items: center;
     justify-content: center;
 
-    width: 36px;
-    height: 36px;
+    width: 32px;
+    height: 32px;
+    margin-left: calc(var(--space-2) * -1);
 
     padding: 0;
 
@@ -146,8 +324,6 @@ a {
     background: none;
     color: var(--color-text);
 
-    font-size: 20px;
-
     cursor: pointer;
 }
 
@@ -155,16 +331,17 @@ a {
     background: var(--color-border);
 }
 
+.top-bar-back .icon {
+    width: 22px;
+    height: 22px;
+}
+
 .top-bar-title {
     flex: 1;
 
-    font-size: 16px;
-    font-weight: 700;
-}
-
-.top-bar-action {
+    font-size: var(--text-body);
+    font-weight: 600;
     color: var(--color-text-muted);
-    font-size: 20px;
 }
 
 
@@ -173,17 +350,13 @@ a {
 ========================================= */
 
 .greeting-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-
     margin-bottom: var(--space-5);
 }
 
 .brand-title {
-    margin: 0 0 var(--space-2);
+    margin: 0 0 var(--space-3);
 
-    font-size: 22px;
+    font-size: 19px;
     font-weight: 800;
     letter-spacing: -0.3px;
 }
@@ -192,11 +365,13 @@ a {
     position: relative;
 
     display: inline-flex;
-    align-items: center;
+    align-items: baseline;
+
+    gap: 2px;
 }
 
 .staff-greeting-prefix {
-    font-size: 15px;
+    font-size: var(--text-item-title);
     font-weight: 700;
     color: var(--color-text);
 }
@@ -204,13 +379,13 @@ a {
 .staff-switcher-v2 select {
     appearance: none;
 
-    padding: var(--space-2) var(--space-6) var(--space-2) var(--space-1);
+    padding: 2px var(--space-5) 2px var(--space-1);
 
     border: none;
     background: none;
 
     font: inherit;
-    font-size: 15px;
+    font-size: var(--text-item-title);
     font-weight: 700;
     color: var(--color-text);
 
@@ -218,31 +393,44 @@ a {
 }
 
 .staff-switcher-v2::after {
-    content: "▾";
+    content: "";
 
     position: absolute;
-    right: 0;
+    right: 2px;
     top: 50%;
+
+    width: 14px;
+    height: 14px;
 
     transform: translateY(-50%);
 
-    color: var(--color-text-muted);
-    font-size: 12px;
+    background-color: var(--color-text-muted);
+
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M6 9L12 15L18 9' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M6 9L12 15L18 9' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
 
     pointer-events: none;
 }
 
 .staff-role {
-    margin: 0;
+    margin: 1px 0 0;
 
+    font-size: var(--text-body-secondary);
     color: var(--color-text-muted);
-    font-size: 13px;
+}
+
+.today-date-row {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+
+    margin: var(--space-5) 0 var(--space-1);
 }
 
 .today-date {
-    margin: var(--space-4) 0 var(--space-1);
-
-    font-size: 15px;
+    font-size: var(--text-item-title);
     font-weight: 700;
 }
 
@@ -250,7 +438,7 @@ a {
     margin: 0 0 var(--space-5);
 
     color: var(--color-text-muted);
-    font-size: 13px;
+    font-size: var(--text-body-secondary);
 }
 
 
@@ -266,48 +454,36 @@ a {
 
     width: 100%;
 
-    padding: var(--space-4);
-    margin-bottom: var(--space-4);
+    padding: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-5);
 
     border: none;
     border-radius: var(--radius-md);
 
-    background: var(--color-warning-bg);
+    background: var(--color-pending-bg);
 
     cursor: pointer;
     text-align: left;
 }
 
-.alert-card-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    width: 36px;
-    height: 36px;
-    flex-shrink: 0;
-
-    border-radius: 50%;
-
-    background: var(--color-warning-icon);
-    color: #ffffff;
-
-    font-size: 16px;
-}
-
 .alert-card-body {
     flex: 1;
+
+    min-width: 0;
 
     display: flex;
     flex-direction: column;
 
-    gap: 2px;
+    gap: 1px;
 }
 
 .alert-card-label {
-    color: var(--color-warning-fg);
-    font-size: 12px;
-    font-weight: 600;
+    color: var(--color-pending-fg);
+    font-size: var(--text-caption);
+    font-weight: 700;
+
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
 }
 
 .alert-card-title {
@@ -316,7 +492,7 @@ a {
 
     gap: var(--space-2);
 
-    font-size: 16px;
+    font-size: var(--text-item-title);
     font-weight: 700;
 }
 
@@ -325,8 +501,8 @@ a {
     align-items: center;
     justify-content: center;
 
-    min-width: 22px;
-    height: 22px;
+    min-width: 20px;
+    height: 20px;
 
     padding: 0 6px;
 
@@ -335,13 +511,12 @@ a {
     background: var(--color-danger-fg);
     color: #ffffff;
 
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
 }
 
 .alert-card-chevron {
-    color: var(--color-warning-fg);
-    font-size: 18px;
+    color: var(--color-pending-fg);
 }
 
 
@@ -358,13 +533,7 @@ a {
     align-items: baseline;
     justify-content: space-between;
 
-    margin-bottom: var(--space-3);
-}
-
-.app-section-title {
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--color-text-muted);
+    margin-bottom: var(--space-2);
 }
 
 .app-section-link {
@@ -374,13 +543,18 @@ a {
     gap: 2px;
 
     color: var(--color-text-muted);
-    font-size: 13px;
+    font-size: var(--text-body-secondary);
     font-weight: 600;
 
     background: none;
     border: none;
 
     cursor: pointer;
+}
+
+.app-section-link .icon {
+    width: 14px;
+    height: 14px;
 }
 
 
@@ -396,7 +570,7 @@ a {
 
     width: 100%;
 
-    padding: var(--space-4);
+    padding: var(--space-3) var(--space-4);
 
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
@@ -408,23 +582,6 @@ a {
     text-align: left;
 }
 
-.next-card-time-badge {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    width: 40px;
-    height: 40px;
-    flex-shrink: 0;
-
-    border-radius: 50%;
-
-    background: var(--color-success-bg);
-    color: var(--color-success-fg);
-
-    font-size: 16px;
-}
-
 .next-card-body {
     flex: 1;
 
@@ -434,25 +591,25 @@ a {
 .next-card-time {
     font-size: 17px;
     font-weight: 800;
+    line-height: var(--leading-tight);
 }
 
 .next-card-name {
     margin-top: 2px;
 
-    font-size: 14px;
-    color: var(--color-text);
+    font-size: var(--text-body);
+    font-weight: 500;
 }
 
 .next-card-meta {
-    margin-top: 2px;
+    margin-top: 1px;
 
     color: var(--color-text-muted);
-    font-size: 13px;
+    font-size: var(--text-body-secondary);
 }
 
 .next-card-chevron {
     color: var(--color-text-faint);
-    font-size: 18px;
 }
 
 
@@ -463,11 +620,11 @@ a {
 .timeline-list {
     display: flex;
     flex-direction: column;
-
-    gap: var(--space-3);
 }
 
 .timeline-row {
+    position: relative;
+
     display: flex;
     align-items: center;
 
@@ -475,7 +632,7 @@ a {
 
     width: 100%;
 
-    padding: 0;
+    padding: var(--space-2) 0;
 
     border: none;
     background: none;
@@ -484,18 +641,42 @@ a {
     text-align: left;
 }
 
+/* 細線時間軸：用左側一條淡線把每一列連起來，取代逐列 card */
+.timeline-list {
+    position: relative;
+
+    padding-left: var(--space-1);
+}
+
+.timeline-list::before {
+    content: "";
+
+    position: absolute;
+    top: 10px;
+    bottom: 10px;
+    left: 9px;
+
+    width: 1px;
+
+    background: var(--color-border);
+}
+
 .timeline-dot {
-    width: 8px;
-    height: 8px;
+    position: relative;
+    z-index: 1;
+
+    width: 9px;
+    height: 9px;
     flex-shrink: 0;
 
     border-radius: 50%;
 
     background: var(--color-text-faint);
+    box-shadow: 0 0 0 3px var(--color-bg);
 }
 
 .timeline-dot.is-next {
-    background: var(--color-warning-icon);
+    background: var(--color-pending-icon-bg);
 }
 
 .timeline-dot.is-confirmed {
@@ -503,10 +684,10 @@ a {
 }
 
 .timeline-time {
-    width: 44px;
+    width: 42px;
     flex-shrink: 0;
 
-    font-size: 13px;
+    font-size: var(--text-body-secondary);
     font-weight: 700;
     color: var(--color-text-muted);
 }
@@ -523,13 +704,19 @@ a {
 }
 
 .timeline-name {
-    font-size: 14px;
+    font-size: var(--text-body);
     font-weight: 600;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .timeline-meta {
+    flex-shrink: 0;
+
     color: var(--color-text-muted);
-    font-size: 13px;
+    font-size: var(--text-body-secondary);
 }
 
 .timeline-status {
@@ -537,13 +724,16 @@ a {
     align-items: center;
     justify-content: center;
 
-    width: 22px;
-    height: 22px;
+    width: 20px;
+    height: 20px;
     flex-shrink: 0;
 
     border-radius: 50%;
+}
 
-    font-size: 12px;
+.timeline-status .icon {
+    width: 12px;
+    height: 12px;
 }
 
 .timeline-status.is-confirmed {
@@ -552,8 +742,54 @@ a {
 }
 
 .timeline-status.is-next {
-    background: var(--color-warning-bg);
-    color: var(--color-warning-fg);
+    background: var(--color-pending-bg);
+    color: var(--color-pending-fg);
+}
+
+
+/* =========================================
+   Today completion state（今日已完成）
+========================================= */
+
+.completion-banner {
+    display: flex;
+    align-items: center;
+
+    gap: var(--space-3);
+
+    padding: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-5);
+
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+
+    background: var(--color-surface-tint);
+}
+
+.completion-banner-body {
+    flex: 1;
+
+    min-width: 0;
+}
+
+.completion-banner-title {
+    font-size: var(--text-body);
+    font-weight: 700;
+}
+
+.completion-banner-subtitle {
+    margin-top: 1px;
+
+    color: var(--color-text-muted);
+    font-size: var(--text-body-secondary);
+}
+
+.completion-banner-count {
+    font-size: var(--text-item-title);
+    font-weight: 700;
+    color: var(--color-text-muted);
+
+    white-space: nowrap;
 }
 
 
@@ -571,8 +807,8 @@ a {
 }
 
 .pending-title {
-    font-size: 20px;
-    font-weight: 800;
+    font-size: var(--text-page-title);
+    font-weight: 700;
 }
 
 .pending-count-badge {
@@ -580,17 +816,17 @@ a {
     align-items: center;
     justify-content: center;
 
-    min-width: 24px;
-    height: 24px;
+    min-width: 22px;
+    height: 22px;
 
-    padding: 0 7px;
+    padding: 0 6px;
 
     border-radius: var(--radius-pill);
 
     background: var(--color-danger-fg);
     color: #ffffff;
 
-    font-size: 13px;
+    font-size: var(--text-caption);
     font-weight: 700;
 }
 
@@ -602,8 +838,8 @@ a {
 
     width: 100%;
 
-    padding: var(--space-4);
-    margin-bottom: var(--space-3);
+    padding: var(--space-3) var(--space-4);
+    margin-bottom: var(--space-2);
 
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
@@ -620,16 +856,16 @@ a {
     align-items: center;
     justify-content: center;
 
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     flex-shrink: 0;
 
     border-radius: 50%;
 
-    background: var(--color-info-bg);
-    color: var(--color-info-fg);
+    background: var(--color-icon-service-bg);
+    color: var(--color-icon-service-fg);
 
-    font-size: 15px;
+    font-size: var(--text-body);
     font-weight: 700;
 }
 
@@ -640,27 +876,26 @@ a {
 }
 
 .booking-row-time {
-    font-size: 13px;
+    font-size: var(--text-body-secondary);
     color: var(--color-text-muted);
 }
 
 .booking-row-name {
-    margin-top: 2px;
+    margin-top: 1px;
 
-    font-size: 15px;
-    font-weight: 700;
+    font-size: var(--text-item-title);
+    font-weight: 600;
 }
 
 .booking-row-meta {
-    margin-top: 2px;
+    margin-top: 1px;
 
     color: var(--color-text-muted);
-    font-size: 13px;
+    font-size: var(--text-body-secondary);
 }
 
 .booking-row-chevron {
     color: var(--color-text-faint);
-    font-size: 18px;
 }
 
 
@@ -677,27 +912,32 @@ a {
 }
 
 .detail-heading {
-    font-size: 20px;
-    font-weight: 800;
+    font-size: var(--text-page-title);
+    font-weight: 700;
 }
 
 .status-pill {
     display: inline-flex;
     align-items: center;
 
-    gap: var(--space-1);
+    gap: 5px;
 
-    padding: var(--space-1) var(--space-3);
+    padding: 5px var(--space-3);
 
     border-radius: var(--radius-pill);
 
-    font-size: 13px;
+    font-size: var(--text-body-secondary);
     font-weight: 700;
 }
 
+.status-pill .icon {
+    width: 14px;
+    height: 14px;
+}
+
 .status-pill.is-pending {
-    background: var(--color-warning-bg);
-    color: var(--color-warning-fg);
+    background: var(--color-pending-bg);
+    color: var(--color-pending-fg);
 }
 
 .status-pill.is-confirmed {
@@ -724,45 +964,17 @@ a {
 
 .detail-row {
     display: flex;
+    align-items: center;
 
     gap: var(--space-3);
 
-    padding: var(--space-4) 0;
+    padding: var(--space-3) 0;
 
     border-bottom: 1px solid var(--color-border);
 }
 
 .detail-row:last-child {
     border-bottom: none;
-}
-
-.detail-row-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    width: 36px;
-    height: 36px;
-    flex-shrink: 0;
-
-    border-radius: 50%;
-
-    font-size: 15px;
-}
-
-.detail-row-icon.is-customer {
-    background: var(--color-info-bg);
-    color: var(--color-info-fg);
-}
-
-.detail-row-icon.is-date {
-    background: var(--color-danger-bg);
-    color: var(--color-danger-fg);
-}
-
-.detail-row-icon.is-service {
-    background: var(--color-info-bg);
-    color: var(--color-info-fg);
 }
 
 .detail-row-body {
@@ -772,15 +984,17 @@ a {
 }
 
 .detail-row-primary {
-    font-size: 15px;
-    font-weight: 700;
+    font-size: var(--text-item-title);
+    font-weight: 600;
+    line-height: var(--leading-tight);
 }
 
 .detail-row-secondary {
     margin-top: 2px;
 
     color: var(--color-text-muted);
-    font-size: 13px;
+    font-size: var(--text-body-secondary);
+    line-height: var(--leading-normal);
 }
 
 .detail-row-value {
@@ -789,6 +1003,10 @@ a {
     justify-content: space-between;
 
     gap: var(--space-3);
+}
+
+.detail-row-value .detail-row-primary:last-child {
+    flex-shrink: 0;
 }
 
 
@@ -808,13 +1026,19 @@ a {
 }
 
 .action-button {
-    min-height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: var(--space-2);
+
+    min-height: var(--button-height);
 
     padding: var(--space-3);
 
     border-radius: var(--radius-sm);
 
-    font-size: 15px;
+    font-size: var(--text-body);
     font-weight: 700;
 
     cursor: pointer;
@@ -824,8 +1048,13 @@ a {
         opacity 0.15s ease;
 }
 
+.action-button .icon {
+    width: 18px;
+    height: 18px;
+}
+
 .action-button:disabled {
-    opacity: 0.6;
+    opacity: 0.55;
     cursor: not-allowed;
 }
 
@@ -844,15 +1073,15 @@ a {
     border: 1px solid var(--color-brand);
 
     background: var(--color-brand);
-    color: var(--color-brand-contrast);
+    color: var(--color-on-brand);
 }
 
 .action-button.is-confirm:hover:not(:disabled) {
-    opacity: 0.9;
+    background: var(--color-brand-strong);
 }
 
 .action-button.is-neutral {
-    border: 1px solid var(--color-border);
+    border: 1px solid var(--color-border-strong);
 
     background: var(--color-surface);
     color: var(--color-text);
@@ -869,7 +1098,7 @@ a {
 
     gap: var(--space-3);
 
-    padding: var(--space-4);
+    padding: var(--space-3) var(--space-4);
     margin-top: var(--space-4);
 
     border-radius: var(--radius-md);
@@ -881,29 +1110,8 @@ a {
     background: var(--color-danger-bg);
 }
 
-.result-banner-icon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    width: 32px;
-    height: 32px;
-    flex-shrink: 0;
-
-    border-radius: 50%;
-
-    background: var(--color-success-fg);
-    color: #ffffff;
-
-    font-size: 14px;
-}
-
-.result-banner.is-rejected .result-banner-icon {
-    background: var(--color-danger-fg);
-}
-
 .result-banner-title {
-    font-size: 14px;
+    font-size: var(--text-body);
     font-weight: 700;
 }
 
@@ -911,7 +1119,7 @@ a {
     margin-top: 1px;
 
     color: var(--color-text-muted);
-    font-size: 12px;
+    font-size: var(--text-body-secondary);
 }
 
 
@@ -927,7 +1135,7 @@ a {
     text-align: center;
 
     color: var(--color-text-faint);
-    font-size: 14px;
+    font-size: var(--text-body);
 }
 
 
@@ -943,7 +1151,8 @@ a {
 
     display: flex;
 
-    height: var(--bottom-nav-height);
+    height: calc(var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+    padding-bottom: env(safe-area-inset-bottom, 0px);
 
     background: var(--color-surface);
 
@@ -960,18 +1169,20 @@ a {
     align-items: center;
     justify-content: center;
 
-    gap: 2px;
+    gap: 3px;
+
+    min-height: 44px;
 
     color: var(--color-text-faint);
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 600;
 
     cursor: pointer;
 }
 
 .bottom-nav-icon {
-    font-size: 20px;
-    line-height: 1;
+    width: 22px;
+    height: 22px;
 }
 
 .bottom-nav-item.is-active {

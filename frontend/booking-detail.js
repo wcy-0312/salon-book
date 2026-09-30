@@ -31,11 +31,11 @@ const STATUS_LABELS = {
     cancelled: "已取消",
 };
 
-const STATUS_ICON = {
-    pending: "🕐",
-    confirmed: "✅",
-    rejected: "✕",
-    cancelled: "✕",
+const STATUS_ICON_FN = {
+    pending: ICONS.clock,
+    confirmed: ICONS.checkCircle,
+    rejected: ICONS.closeCircle,
+    cancelled: ICONS.closeCircle,
 };
 
 
@@ -148,6 +148,7 @@ function renderBooking(booking, resultMessage) {
                     id="reject-button"
                     class="action-button is-reject"
                 >
+                    <span class="icon">${ICONS.close()}</span>
                     拒絕預約
                 </button>
 
@@ -156,6 +157,7 @@ function renderBooking(booking, resultMessage) {
                     id="confirm-button"
                     class="action-button is-confirm"
                 >
+                    <span class="icon">${ICONS.check()}</span>
                     確認預約
                 </button>
             </div>
@@ -169,8 +171,8 @@ function renderBooking(booking, resultMessage) {
 
         resultHtml = `
             <div class="result-banner ${isRejected ? "is-rejected" : ""}">
-                <span class="result-banner-icon">
-                    ${isRejected ? "✕" : "✓"}
+                <span class="icon-badge size-sm ${isRejected ? "is-danger" : "is-success"}">
+                    <span class="icon icon-16">${isRejected ? ICONS.close() : ICONS.check()}</span>
                 </span>
                 <span>
                     <div class="result-banner-title">${resultMessage.title}</div>
@@ -184,14 +186,17 @@ function renderBooking(booking, resultMessage) {
         <div class="detail-status-row">
             <span class="detail-heading">預約詳情</span>
             <span class="status-pill is-${booking.status}">
-                ${STATUS_ICON[booking.status] ?? ""} ${statusLabel}
+                <span class="icon">${STATUS_ICON_FN[booking.status]?.() ?? ""}</span>
+                ${statusLabel}
             </span>
         </div>
 
         <div class="detail-card">
 
             <div class="detail-row">
-                <span class="detail-row-icon is-customer">👤</span>
+                <span class="icon-badge size-md is-customer">
+                    <span class="icon icon-18">${ICONS.user()}</span>
+                </span>
                 <div class="detail-row-body">
                     <div class="detail-row-primary"></div>
                     <div class="detail-row-secondary"></div>
@@ -199,7 +204,9 @@ function renderBooking(booking, resultMessage) {
             </div>
 
             <div class="detail-row">
-                <span class="detail-row-icon is-date">📅</span>
+                <span class="icon-badge size-md is-calendar">
+                    <span class="icon icon-18">${ICONS.calendarDetail()}</span>
+                </span>
                 <div class="detail-row-body">
                     <div class="detail-row-primary"></div>
                     <div class="detail-row-secondary"></div>
@@ -207,7 +214,9 @@ function renderBooking(booking, resultMessage) {
             </div>
 
             <div class="detail-row">
-                <span class="detail-row-icon is-service">✂️</span>
+                <span class="icon-badge size-md is-service">
+                    <span class="icon icon-18">${ICONS.scissors()}</span>
+                </span>
                 <div class="detail-row-body detail-row-value">
                     <div>
                         <div class="detail-row-primary"></div>
@@ -347,6 +356,9 @@ async function handleBookingAction(id, action) {
 ========================================= */
 
 async function initializeBookingDetailPage() {
+
+    document.querySelector("#back-icon").innerHTML =
+        ICONS.chevronLeft();
 
     bookingId = getBookingIdFromUrl();
     fromPage = getFromPageFromUrl();

@@ -8,6 +8,20 @@
    → 今日行程摘要（今天的 CONFIRMED，入口到 booking-detail.html；「查看全部」先導去 pending.html 同等清單頁，見下方說明）
 ========================================= */
 
+function injectStaticIcons() {
+    document.querySelector("#pending-alert-icon").innerHTML = ICONS.clock();
+    document.querySelector("#pending-alert-chevron").innerHTML = ICONS.chevronRight();
+    document.querySelector("#completion-icon").innerHTML = ICONS.checkCircle();
+    document.querySelector("#next-customer-icon").innerHTML = ICONS.calendarNav();
+    document.querySelector("#next-customer-chevron").innerHTML = ICONS.chevronRight();
+
+    document.querySelector("#nav-today-icon").innerHTML = ICONS.home();
+    document.querySelector("#nav-calendar-icon").innerHTML = ICONS.calendarNav();
+    document.querySelector("#nav-services-icon").innerHTML = ICONS.scissors();
+    document.querySelector("#nav-management-icon").innerHTML = ICONS.settings();
+}
+
+
 const staffSelect =
     document.querySelector("#staff-select");
 
@@ -25,6 +39,15 @@ const pendingAlertCard =
 
 const pendingAlertCount =
     document.querySelector("#pending-alert-count");
+
+const completionBanner =
+    document.querySelector("#completion-banner");
+
+const completionSubtitle =
+    document.querySelector("#completion-subtitle");
+
+const completionCount =
+    document.querySelector("#completion-count");
 
 const nextCustomerSection =
     document.querySelector("#next-customer-section");
@@ -289,14 +312,46 @@ function renderHeader() {
 }
 
 
-function renderPendingAlert(count) {
+/**
+ * 今日首頁需要在三種狀態間自然切換（純前端從既有資料推導，
+ * 沒有新增任何 backend 欄位或統計邏輯）：
+ * A. 有待確認 → 顯示「需要處理」提示卡
+ * B. 沒待確認、但今天還有尚未開始的 CONFIRMED → 不顯示提示卡，
+ *    也不顯示完成狀態，直接讓「下一位客人」自然往上
+ * C. 沒待確認、且今天所有 CONFIRMED 都已經過了（或今天沒有
+ *    任何 CONFIRMED）→ 顯示「今日已完成」狀態列
+ */
+function renderPendingAlertAndCompletion(pendingCount, confirmedBookings) {
 
-    if (count > 0) {
+    if (pendingCount > 0) {
         pendingAlertCard.style.display = "flex";
-        pendingAlertCount.textContent = String(count);
-    } else {
-        pendingAlertCard.style.display = "none";
+        pendingAlertCount.textContent = String(pendingCount);
+        completionBanner.style.display = "none";
+        return;
     }
+
+    pendingAlertCard.style.display = "none";
+
+    const now = new Date();
+
+    const hasUpcoming = confirmedBookings.some(
+        (booking) => new Date(booking.start_at) >= now
+    );
+
+    if (hasUpcoming) {
+        completionBanner.style.display = "none";
+        return;
+    }
+
+    completionBanner.style.display = "flex";
+
+    completionSubtitle.textContent =
+        confirmedBookings.length > 0
+            ? "今天的預約都完成了"
+            : "今天目前沒有已確認的預約";
+
+    completionCount.textContent =
+        `${confirmedBookings.length} / ${confirmedBookings.length}`;
 }
 
 
@@ -383,7 +438,7 @@ function renderTodaySchedule(confirmedBookings) {
                 <span class="timeline-meta"></span>
             </span>
             <span class="timeline-status ${isNext ? "is-next" : "is-confirmed"}">
-                ${isNext ? "⏰" : "✓"}
+                <span class="icon">${isNext ? ICONS.clock() : ICONS.check()}</span>
             </span>
         `;
 
@@ -418,7 +473,7 @@ async function loadToday() {
         todaySummary.textContent =
             `今天有 ${confirmedBookings.length} 位客人`;
 
-        renderPendingAlert(pendingCount);
+        renderPendingAlertAndCompletion(pendingCount, confirmedBookings);
         renderNextCustomer(confirmedBookings);
         renderTodaySchedule(confirmedBookings);
 
@@ -446,6 +501,9 @@ async function loadToday() {
 
 async function initializeToday() {
     try {
+
+        injectStaticIcons();
+
         const authenticated =
             await initializeAdminLiff();
 

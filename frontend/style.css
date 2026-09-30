@@ -301,6 +301,7 @@ a {
 }
 
 .calendar-day:disabled {
+    background: #f0f0f0;
     color: #ccc;
     cursor: default;
 }

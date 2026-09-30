@@ -94,6 +94,9 @@ let currentMonth = today.getMonth();
 
 let availableSlots = {};
 
+// 目前月份的 availability summary（key: "YYYY-MM-DD", value: boolean）
+let monthAvailability = {};
+
 /* -------------------------
    Service
 ------------------------- */
@@ -380,7 +383,7 @@ backButton.addEventListener("click", () => {
    Calendar
 ------------------------- */
 
-function renderCalendar() {
+async function renderCalendar() {
 
     calendar.innerHTML = "";
 
@@ -400,6 +403,13 @@ function renderCalendar() {
         today.getDate() + 30
     );
 
+    const todayStart =
+        new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            today.getDate()
+        );
+
 
     /*
      * 月初之前補空格
@@ -416,8 +426,11 @@ function renderCalendar() {
     }
 
 
+    const buttonsByDateString = {};
+
+
     /*
-     * 建立日期
+     * 建立日期（此時尚未知道 availability，先以 loading 狀態呈現）
      */
     for (
         let day = 1;
@@ -448,25 +461,22 @@ function renderCalendar() {
                 day
             );
 
-        const todayStart =
-            new Date(
-                today.getFullYear(),
-                today.getMonth(),
-                today.getDate()
-            );
-
-        if (
+        const isOutOfRange =
             date < todayStart ||
-            date > maximumBookingDate
-        ) {
+            date > maximumBookingDate;
+
+        if (isOutOfRange) {
             button.disabled = true;
             button.classList.add("disabled");
+        } else {
+            // availability summary 載入完成前，先 disable 避免誤點
+            button.disabled = true;
+            button.classList.add("disabled");
+
+            buttonsByDateString[dateString] = button;
         }
 
 
-        /*
-         * 沒有可預約時段的日期不能按
-         */
         button.addEventListener(
             "click",
             async () => {
@@ -487,25 +497,78 @@ function renderCalendar() {
 
         calendar.appendChild(button);
 
-        const isCurrentMonth =
-            currentYear === today.getFullYear() &&
-            currentMonth === today.getMonth();
-
-        previousMonthButton.disabled = isCurrentMonth;
-
-        const maximumMonth =
-            maximumBookingDate.getMonth();
-
-        const maximumYear =
-            maximumBookingDate.getFullYear();
-
-        const isMaximumMonth =
-            currentYear === maximumYear &&
-            currentMonth === maximumMonth;
-
-        nextMonthButton.disabled = isMaximumMonth;
-
     }
+
+
+    const isCurrentMonth =
+        currentYear === today.getFullYear() &&
+        currentMonth === today.getMonth();
+
+    previousMonthButton.disabled = isCurrentMonth;
+
+    const maximumMonth =
+        maximumBookingDate.getMonth();
+
+    const maximumYear =
+        maximumBookingDate.getFullYear();
+
+    const isMaximumMonth =
+        currentYear === maximumYear &&
+        currentMonth === maximumMonth;
+
+    nextMonthButton.disabled = isMaximumMonth;
+
+
+    /*
+     * 取得本月 availability summary，一次查詢整個月份範圍，
+     * 避免針對月曆上每一天各呼叫一次 /availability。
+     */
+    const rangeStart =
+        todayStart > firstDay ? todayStart : firstDay;
+
+    const rangeEnd =
+        maximumBookingDate < lastDay
+            ? maximumBookingDate
+            : lastDay;
+
+    if (rangeStart > rangeEnd) {
+        return;
+    }
+
+    try {
+
+        monthAvailability =
+            await fetchAvailabilitySummary(
+                rangeStart,
+                rangeEnd
+            );
+
+    } catch (error) {
+
+        console.error(
+            "Failed to load month availability:",
+            error
+        );
+
+        monthAvailability = {};
+    }
+
+
+    Object.entries(buttonsByDateString).forEach(
+        ([dateString, button]) => {
+
+            const isAvailable =
+                monthAvailability[dateString] === true;
+
+            button.disabled = !isAvailable;
+
+            button.classList.toggle(
+                "disabled",
+                !isAvailable
+            );
+
+        }
+    );
 
 }
 
@@ -771,6 +834,54 @@ async function fetchAvailability(dateString) {
     const data = await response.json();
 
     return data.slots;
+}
+
+
+async function fetchAvailabilitySummary(
+    rangeStartDate,
+    rangeEndDate
+) {
+
+    const startDateString =
+        formatDate(
+            rangeStartDate.getFullYear(),
+            rangeStartDate.getMonth() + 1,
+            rangeStartDate.getDate()
+        );
+
+    const endDateString =
+        formatDate(
+            rangeEndDate.getFullYear(),
+            rangeEndDate.getMonth() + 1,
+            rangeEndDate.getDate()
+        );
+
+    const params = new URLSearchParams({
+        staff_id: "1",
+        service_id: selectedService.id,
+        start_date: startDateString,
+        end_date: endDateString,
+    });
+
+    const response = await fetch(
+        `${API_BASE_URL}/availability/summary?${params}`
+    );
+
+    if (!response.ok) {
+        throw new Error(
+            `Availability summary API error: ${response.status}`
+        );
+    }
+
+    const data = await response.json();
+
+    const availabilityMap = {};
+
+    data.available_dates.forEach((dateString) => {
+        availabilityMap[dateString] = true;
+    });
+
+    return availabilityMap;
 }
 
 /* -------------------------

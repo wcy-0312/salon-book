@@ -715,6 +715,127 @@ def create_booking(
 # Availability
 # =========================================================
 
+def compute_available_slots(
+    target_date: date,
+    schedule: Schedule | None,
+    service_duration_minutes: int,
+    bookings: list[Booking],
+    blocked_times: list[BlockedTime],
+    now: datetime,
+) -> list[str]:
+    """
+    單一日期的可預約時段計算核心邏輯。
+    /availability 與 /availability/summary 都必須呼叫這裡，
+    確保兩者的可預約判定規則完全一致。
+
+    `bookings` / `blocked_times` 需為已經與 target_date 有交集、
+    且屬於同一位 staff 的資料（呼叫端負責篩選），本函式不再對
+    staff_id 或日期做過濾。
+    """
+
+    if schedule is None:
+        return []
+
+    work_start = datetime.combine(
+        target_date,
+        schedule.start_time,
+    )
+
+    work_end = datetime.combine(
+        target_date,
+        schedule.end_time,
+    )
+
+    slots = []
+
+    slot_interval = timedelta(
+        minutes=30
+    )
+
+    service_duration = timedelta(
+        minutes=service_duration_minutes
+    )
+
+    candidate_start = work_start
+
+    minimum_booking_time = (
+        now
+        + timedelta(hours=1)
+    )
+
+    while (
+        candidate_start + service_duration
+        <= work_end
+    ):
+
+        if candidate_start < minimum_booking_time:
+            candidate_start += slot_interval
+            continue
+
+        candidate_end = (
+            candidate_start
+            + service_duration
+        )
+
+        conflict = False
+
+
+        for booking in bookings:
+
+            booking_start = (
+                booking.start_at
+            )
+
+            booking_end = (
+                booking_start
+                + timedelta(
+                    minutes=
+                    booking.duration_minutes
+                )
+            )
+
+
+            # 時間區間重疊
+            if (
+                candidate_start < booking_end
+                and
+                candidate_end > booking_start
+            ):
+
+                conflict = True
+                break
+
+
+        if not conflict:
+
+            for blocked_time in blocked_times:
+
+                # 時間區間重疊
+                if (
+                    candidate_start < blocked_time.end_at
+                    and
+                    candidate_end > blocked_time.start_at
+                ):
+
+                    conflict = True
+                    break
+
+
+        if not conflict:
+
+            slots.append(
+                candidate_start.strftime(
+                    "%H:%M"
+                )
+            )
+
+
+        candidate_start += slot_interval
+
+
+    return slots
+
+
 @app.get(
     "/availability",
     response_model=AvailabilityResponse,
@@ -737,7 +858,7 @@ def get_availability(
             service_id=service_id,
             slots=[],
         )
-    
+
     with Session(engine) as session:
 
         # -------------------------
@@ -786,32 +907,6 @@ def get_availability(
         schedule = session.exec(
             statement
         ).first()
-
-
-        # 當天沒有班
-        if schedule is None:
-
-            return AvailabilityResponse(
-                date=target_date,
-                staff_id=staff_id,
-                service_id=service_id,
-                slots=[],
-            )
-
-
-        # -------------------------
-        # 工作時間
-        # -------------------------
-
-        work_start = datetime.combine(
-            target_date,
-            schedule.start_time,
-        )
-
-        work_end = datetime.combine(
-            target_date,
-            schedule.end_time,
-        )
 
 
         # -------------------------
@@ -869,98 +964,215 @@ def get_availability(
         # 計算 Availability
         # -------------------------
 
-        slots = []
-
-        slot_interval = timedelta(
-            minutes=30
+        slots = compute_available_slots(
+            target_date=target_date,
+            schedule=schedule,
+            service_duration_minutes=service.duration_minutes,
+            bookings=bookings,
+            blocked_times=blocked_times,
+            now=taipei_now(),
         )
-
-        service_duration = timedelta(
-            minutes=service.duration_minutes
-        )
-
-        candidate_start = work_start
-
-        minimum_booking_time = (
-            taipei_now()
-            + timedelta(hours=1)
-        )
-
-        while (
-            candidate_start + service_duration
-            <= work_end
-        ):
-
-            if candidate_start < minimum_booking_time:
-                candidate_start += slot_interval
-                continue
-
-            candidate_end = (
-                candidate_start
-                + service_duration
-            )
-
-            conflict = False
-
-
-            for booking in bookings:
-
-                booking_start = (
-                    booking.start_at
-                )
-
-                booking_end = (
-                    booking_start
-                    + timedelta(
-                        minutes=
-                        booking.duration_minutes
-                    )
-                )
-
-
-                # 時間區間重疊
-                if (
-                    candidate_start < booking_end
-                    and
-                    candidate_end > booking_start
-                ):
-
-                    conflict = True
-                    break
-
-
-            if not conflict:
-
-                for blocked_time in blocked_times:
-
-                    # 時間區間重疊
-                    if (
-                        candidate_start < blocked_time.end_at
-                        and
-                        candidate_end > blocked_time.start_at
-                    ):
-
-                        conflict = True
-                        break
-
-
-            if not conflict:
-
-                slots.append(
-                    candidate_start.strftime(
-                        "%H:%M"
-                    )
-                )
-
-
-            candidate_start += slot_interval
-
 
         return AvailabilityResponse(
             date=target_date,
             staff_id=staff_id,
             service_id=service_id,
             slots=slots,
+        )
+
+
+class AvailabilitySummaryResponse(SQLModel):
+    staff_id: int
+    service_id: str
+    available_dates: list[date]
+
+
+@app.get(
+    "/availability/summary",
+    response_model=AvailabilitySummaryResponse,
+)
+def get_availability_summary(
+    staff_id: int,
+    service_id: str,
+    start_date: date,
+    end_date: date,
+):
+
+    if end_date < start_date:
+        raise HTTPException(
+            status_code=422,
+            detail="end_date must not be before start_date",
+        )
+
+    now = taipei_now()
+
+    maximum_booking_date = (
+        now.date()
+        + timedelta(days=30)
+    )
+
+    # 只需要計算 [today, maximum_booking_date] 且落在請求範圍內的日期，
+    # 其餘日期本來就不可能可預約（規則與 /availability 相同）。
+    range_start = max(
+        start_date,
+        now.date(),
+    )
+
+    range_end = min(
+        end_date,
+        maximum_booking_date,
+    )
+
+    if range_end < range_start:
+        return AvailabilitySummaryResponse(
+            staff_id=staff_id,
+            service_id=service_id,
+            available_dates=[],
+        )
+
+    with Session(engine) as session:
+
+        # -------------------------
+        # Staff
+        # -------------------------
+
+        staff = session.get(
+            Staff,
+            staff_id,
+        )
+
+        if staff is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Staff not found",
+            )
+
+
+        # -------------------------
+        # Service
+        # -------------------------
+
+        service = session.get(
+            Service,
+            service_id,
+        )
+
+        if service is None:
+            raise HTTPException(
+                status_code=404,
+                detail="Service not found",
+            )
+
+
+        # -------------------------
+        # Schedule（整週只有 7 種 weekday，一次查完）
+        # -------------------------
+
+        schedules_by_weekday = {
+            schedule.weekday: schedule
+            for schedule in session.exec(
+                select(Schedule).where(
+                    Schedule.staff_id == staff_id,
+                )
+            ).all()
+        }
+
+
+        # -------------------------
+        # 一次查出整個範圍內的 Booking / BlockedTime
+        # -------------------------
+
+        range_start_at = datetime.combine(
+            range_start,
+            time.min,
+        )
+
+        range_end_at = datetime.combine(
+            range_end + timedelta(days=1),
+            time.min,
+        )
+
+        bookings_in_range = session.exec(
+            select(Booking).where(
+                Booking.staff_id == staff_id,
+                Booking.start_at >= range_start_at,
+                Booking.start_at < range_end_at,
+                Booking.status.in_([
+                    BookingStatus.PENDING,
+                    BookingStatus.CONFIRMED,
+                ]),
+            )
+        ).all()
+
+        blocked_times_in_range = session.exec(
+            select(BlockedTime).where(
+                BlockedTime.staff_id == staff_id,
+                BlockedTime.start_at < range_end_at,
+                BlockedTime.end_at > range_start_at,
+            )
+        ).all()
+
+
+        # -------------------------
+        # 逐日判定是否至少有一個可預約時段
+        # -------------------------
+
+        available_dates = []
+
+        current_date = range_start
+
+        while current_date <= range_end:
+
+            day_start = datetime.combine(
+                current_date,
+                time.min,
+            )
+
+            day_end = datetime.combine(
+                current_date,
+                time.max,
+            )
+
+            next_day_start = datetime.combine(
+                current_date + timedelta(days=1),
+                time.min,
+            )
+
+            bookings_for_day = [
+                booking
+                for booking in bookings_in_range
+                if day_start <= booking.start_at <= day_end
+            ]
+
+            blocked_times_for_day = [
+                blocked_time
+                for blocked_time in blocked_times_in_range
+                if blocked_time.start_at < next_day_start
+                and blocked_time.end_at > day_start
+            ]
+
+            schedule = schedules_by_weekday.get(
+                current_date.weekday()
+            )
+
+            slots = compute_available_slots(
+                target_date=current_date,
+                schedule=schedule,
+                service_duration_minutes=service.duration_minutes,
+                bookings=bookings_for_day,
+                blocked_times=blocked_times_for_day,
+                now=now,
+            )
+
+            if slots:
+                available_dates.append(current_date)
+
+            current_date += timedelta(days=1)
+
+        return AvailabilitySummaryResponse(
+            staff_id=staff_id,
+            service_id=service_id,
+            available_dates=available_dates,
         )
 
 

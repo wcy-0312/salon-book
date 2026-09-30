@@ -1089,7 +1089,9 @@ async function initializeLiff() {
         });
 
         if (!liff.isLoggedIn()) {
-            liff.login();
+            liff.login({
+                redirectUri: window.location.href,
+            });
             return;
         }
 

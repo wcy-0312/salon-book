@@ -8,7 +8,9 @@ async function initializeAdminLiff() {
     });
 
     if (!liff.isLoggedIn()) {
-        liff.login();
+        liff.login({
+            redirectUri: window.location.href,
+        });
         return false;
     }
 

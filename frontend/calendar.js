@@ -16,6 +16,9 @@ const staffSelect =
 const staffRole =
     document.querySelector("#staff-role");
 
+const staffAvatar =
+    document.querySelector("#staff-avatar");
+
 const calendarMonthLabel =
     document.querySelector("#calendar-month-label");
 
@@ -209,6 +212,7 @@ async function loadStaffSwitcher() {
         });
 
         staffRole.textContent = defaultStaff.title;
+        staffAvatar.textContent = defaultStaff.name.slice(0, 1);
 
         updateUrlStaffId(currentStaffId);
         updateNavLinks();
@@ -236,6 +240,7 @@ staffSelect.addEventListener("change", async () => {
 
     if (selectedStaff) {
         staffRole.textContent = selectedStaff.title;
+        staffAvatar.textContent = selectedStaff.name.slice(0, 1);
     }
 
     updateUrlStaffId(currentStaffId);
@@ -288,7 +293,6 @@ function renderWeekStrip() {
         dayButton.innerHTML = `
             <span class="week-strip-weekday">${WEEKDAY_LABELS_SHORT[date.getDay()]}</span>
             <span class="week-strip-date">${date.getDate()}</span>
-            <span class="week-strip-dot"></span>
         `;
 
         dayButton.addEventListener("click", () => {
@@ -297,21 +301,6 @@ function renderWeekStrip() {
 
         weekStrip.appendChild(dayButton);
     }
-}
-
-
-function markWeekStripContent(datesWithContent) {
-
-    const dayButtons = weekStrip.querySelectorAll(".week-strip-day");
-
-    dayButtons.forEach((button, index) => {
-        const date = new Date(weekStart);
-        date.setDate(date.getDate() + index);
-
-        if (datesWithContent.has(formatDateForInput(date))) {
-            button.classList.add("has-content");
-        }
-    });
 }
 
 
@@ -419,14 +408,36 @@ function renderSelectedDateLabel() {
 }
 
 
-function renderDailySchedule(bookings, blockedTimes, isStaffWorkingToday) {
+// Compressed duration tier：三種視覺高度，不是真實 1 分鐘 = N px
+// 的比例，避免 180 分鐘的預約造成過長 scrolling。
+function durationTier(minutes) {
+    if (minutes <= 60) {
+        return "tier-short";
+    }
+    if (minutes <= 120) {
+        return "tier-standard";
+    }
+    return "tier-long";
+}
+
+
+// 只有「夠長、對插入新預約有實際意義」的空檔才顯示低權重提示。
+// 30 分鐘等太短的空檔，讓 timeline 本身的疏密自然呈現即可，
+// 不需要額外文字——否則會變成 Booking／空檔交替的 list。
+const MEANINGFUL_GAP_MINUTES = 45;
+
+
+function renderDailySchedule(bookings, blockedTimes, workingHours) {
 
     dailyScheduleList.innerHTML = "";
+
+    const isStaffWorkingToday = Boolean(workingHours);
+    const isWholeDayOff = blockedTimes.some((bt) => isWholeDayBlock(bt));
 
     if (!isStaffWorkingToday) {
         closedBanner.style.display = "flex";
         closedBannerSubtitle.textContent = "尚未設定這天的營業時間";
-    } else if (blockedTimes.some((bt) => isWholeDayBlock(bt))) {
+    } else if (isWholeDayOff) {
         closedBanner.style.display = "flex";
         closedBannerSubtitle.textContent = "這天已設定為整天休假";
     } else {
@@ -434,31 +445,85 @@ function renderDailySchedule(bookings, blockedTimes, isStaffWorkingToday) {
     }
 
     const items = [
-        ...bookings.map((booking) => ({ type: "booking", startAt: new Date(booking.start_at), data: booking })),
+        ...bookings.map((booking) => ({
+            type: "booking",
+            startAt: new Date(booking.start_at),
+            endAt: new Date(new Date(booking.start_at).getTime() + booking.duration_minutes * 60000),
+            data: booking,
+        })),
         ...blockedTimes
             .filter((bt) => !isWholeDayBlock(bt))
-            .map((bt) => ({ type: "blocked", startAt: new Date(bt.start_at), data: bt })),
+            .map((bt) => ({
+                type: "blocked",
+                startAt: new Date(bt.start_at),
+                endAt: new Date(bt.end_at),
+                data: bt,
+            })),
     ].sort((a, b) => a.startAt - b.startAt);
 
     if (items.length === 0) {
 
-        dailyScheduleList.innerHTML = buildEmptyStateHtml(
-            isStaffWorkingToday,
-            blockedTimes.some((bt) => isWholeDayBlock(bt))
-        );
+        dailyScheduleList.innerHTML = buildEmptyStateHtml(isStaffWorkingToday, isWholeDayOff);
 
         return;
     }
 
+    let previousEndAt = workingHours ? workingHours.startAt : null;
+
     items.forEach((item) => {
+
+        appendGapIfMeaningful(previousEndAt, item.startAt);
 
         if (item.type === "booking") {
             dailyScheduleList.appendChild(buildBookingRow(item.data, item.startAt));
         } else {
-            dailyScheduleList.appendChild(buildBlockedTimeRow(item.data, item.startAt));
+            dailyScheduleList.appendChild(buildBlockedTimeRow(item.data, item.startAt, item.endAt));
         }
 
+        previousEndAt = item.endAt;
+
     });
+
+    if (workingHours) {
+        appendGapIfMeaningful(previousEndAt, workingHours.endAt);
+        dailyScheduleList.appendChild(buildEndBoundary(workingHours.endAt));
+    }
+}
+
+
+function appendGapIfMeaningful(fromAt, toAt) {
+
+    if (!fromAt || !toAt) {
+        return;
+    }
+
+    const gapMinutes = Math.round((toAt.getTime() - fromAt.getTime()) / 60000);
+
+    if (gapMinutes < MEANINGFUL_GAP_MINUTES) {
+        return;
+    }
+
+    const gap = document.createElement("div");
+
+    gap.className = "cal-tl-gap";
+
+    gap.innerHTML = `
+        <span class="cal-tl-gap-rail"></span>
+        <span class="cal-tl-gap-label">空檔 ${gapMinutes} 分鐘</span>
+    `;
+
+    dailyScheduleList.appendChild(gap);
+}
+
+
+function buildEndBoundary(endAt) {
+
+    const boundary = document.createElement("div");
+
+    boundary.className = "cal-tl-end-boundary";
+    boundary.textContent = `今日營業時間結束（${formatTime(endAt)}）`;
+
+    return boundary;
 }
 
 
@@ -485,51 +550,55 @@ function buildEmptyStateHtml(isStaffWorkingToday, isWholeDayOff) {
 
 function buildBookingRow(booking, startAt) {
 
+    const endAt = new Date(startAt.getTime() + booking.duration_minutes * 60000);
+
     const row = document.createElement("a");
 
     row.href = buildBookingDetailUrl(booking.id);
-    row.className = "timeline-row";
 
-    const statusClass = booking.status === "pending" ? "is-pending" : "is-confirmed";
+    const statusClass = booking.status === "pending" ? "pending" : "confirmed";
+
+    row.className = `cal-tl-item ${statusClass}`;
 
     row.innerHTML = `
-        <span class="timeline-dot ${statusClass}"></span>
-        <span class="timeline-time">${formatTime(startAt)}</span>
-        <span class="timeline-body">
-            <span class="timeline-name"></span>
-            <span class="timeline-meta"></span>
-        </span>
-        <span class="timeline-status ${statusClass}">
-            <span class="icon">${booking.status === "pending" ? ICONS.clock() : ICONS.check()}</span>
+        <span class="cal-tl-time">${formatTime(startAt)}</span>
+        <span class="cal-tl-dot is-${statusClass}"></span>
+        <span class="cal-tl-surface ${durationTier(booking.duration_minutes)}">
+            <span class="cal-tl-row-top">
+                <span class="cal-tl-name"></span>
+                <span class="cal-tl-end">至 ${formatTime(endAt)}</span>
+            </span>
+            <span class="cal-tl-meta"></span>
         </span>
     `;
 
-    row.querySelector(".timeline-name").textContent = booking.customer_name;
-    row.querySelector(".timeline-meta").textContent =
-        `${booking.service_name} · ${booking.duration_minutes} 分鐘`;
+    row.querySelector(".cal-tl-name").textContent = booking.customer_name;
+    row.querySelector(".cal-tl-meta").textContent =
+        `${booking.service_name} · ${booking.duration_minutes} 分鐘${booking.status === "pending" ? " · 待確認" : ""}`;
 
     return row;
 }
 
 
-function buildBlockedTimeRow(blockedTime, startAt) {
+function buildBlockedTimeRow(blockedTime, startAt, endAt) {
 
-    const endAt = new Date(blockedTime.end_at);
+    const durationMinutes = Math.round((endAt.getTime() - startAt.getTime()) / 60000);
 
     const row = document.createElement("div");
 
-    row.className = "timeline-row is-blocked";
+    row.className = "cal-tl-item blocked";
 
     row.innerHTML = `
-        <span class="timeline-dot is-blocked"></span>
-        <span class="timeline-time">${formatTime(startAt)}</span>
-        <span class="timeline-body">
-            <span class="timeline-name"></span>
+        <span class="cal-tl-time">${formatTime(startAt)}</span>
+        <span class="cal-tl-dot is-blocked"></span>
+        <span class="cal-tl-surface ${durationTier(durationMinutes)}">
+            <span class="cal-tl-name">不可預約</span>
+            <span class="cal-tl-meta"></span>
         </span>
     `;
 
-    row.querySelector(".timeline-name").textContent =
-        `不可預約 · 至 ${formatTime(endAt)}${blockedTime.reason ? `（${blockedTime.reason}）` : ""}`;
+    row.querySelector(".cal-tl-meta").textContent =
+        `至 ${formatTime(endAt)}${blockedTime.reason ? ` · ${blockedTime.reason}` : ""}`;
 
     return row;
 }
@@ -556,15 +625,9 @@ async function loadDailySchedule() {
             (day) => day.weekday === toBackendWeekday(selectedDate)
         );
 
-        renderDailySchedule(bookings, blockedTimes, Boolean(todaySchedule?.is_open));
+        const workingHours = buildWorkingHoursRange(todaySchedule);
 
-        const datesWithContent = new Set();
-
-        if (bookings.length > 0 || blockedTimes.length > 0) {
-            datesWithContent.add(formatDateForInput(selectedDate));
-        }
-
-        markWeekStripContent(datesWithContent);
+        renderDailySchedule(bookings, blockedTimes, workingHours);
 
     } catch (error) {
 
@@ -579,6 +642,27 @@ async function loadDailySchedule() {
 // JS Date.getDay()：Sunday=0 ... Saturday=6
 function toBackendWeekday(date) {
     return (date.getDay() + 6) % 7;
+}
+
+
+// ScheduleDay.start_time / end_time 是 "HH:MM:SS" 字串，轉成
+// selectedDate 當天的實際 Date 物件，作為 timeline 的營業時間邊界。
+function buildWorkingHoursRange(scheduleDay) {
+
+    if (!scheduleDay?.is_open || !scheduleDay.start_time || !scheduleDay.end_time) {
+        return null;
+    }
+
+    const [startHour, startMinute] = scheduleDay.start_time.split(":").map(Number);
+    const [endHour, endMinute] = scheduleDay.end_time.split(":").map(Number);
+
+    const startAt = new Date(selectedDate);
+    startAt.setHours(startHour, startMinute, 0, 0);
+
+    const endAt = new Date(selectedDate);
+    endAt.setHours(endHour, endMinute, 0, 0);
+
+    return { startAt, endAt };
 }
 
 

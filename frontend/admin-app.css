@@ -49,6 +49,13 @@
     --color-blocked-fg: #5b5a72;
     --color-blocked-bg: #eeeef4;
 
+    /* ---- Calendar timeline（今天 state 與 brand 綠刻意不同色相，
+       避免 selected／today 兩個圓圈互相競爭；rail/gap 是中性灰階，
+       本身只是結構線，不帶語意色）---- */
+    --color-today-fg: #8a6a2f;
+    --color-rail: #dedad1;
+    --color-gap-hint: #a6a29a;
+
     /* ---- Semantic icon colors（僅用於 Booking Detail 的少量彩色 icon）---- */
     --color-icon-customer-fg: #1f8a7c;
     --color-icon-customer-bg: #e3f4f1;
@@ -752,39 +759,6 @@ svg {
     color: var(--color-pending-fg);
 }
 
-.timeline-dot.is-pending {
-    background: var(--color-pending-icon-bg);
-}
-
-.timeline-status.is-pending {
-    background: var(--color-pending-bg);
-    color: var(--color-pending-fg);
-}
-
-/* BlockedTime 列：同一條時間軸上的一列，但刻意做得比 Booking
-   安靜——沒有可點擊的卡片感、沒有 chevron，用色塊表示「這段
-   時間已經不存在」而不是「有一件事要處理」。 */
-.timeline-row.is-blocked {
-    cursor: default;
-}
-
-.timeline-dot.is-blocked {
-    background: var(--color-blocked-fg);
-}
-
-.timeline-row.is-blocked .timeline-name {
-    color: var(--color-blocked-fg);
-    font-weight: 600;
-}
-
-.timeline-row.is-blocked .timeline-body {
-    padding: 6px var(--space-3);
-
-    border-radius: var(--radius-sm);
-
-    background: var(--color-blocked-bg);
-}
-
 
 /* =========================================
    Today completion state（今日已完成）
@@ -1235,21 +1209,112 @@ svg {
 
 
 /* =========================================
-   Calendar — page header
+   Calendar — control area
+   （staff context / month nav / week strip /
+   selected date + 不可預約 action 合併成一個
+   視覺單元，取代原本四段各自獨立的區塊）
 ========================================= */
 
-.calendar-header-row {
+.calendar-control {
+    margin: 0 calc(-1 * var(--space-4)) var(--space-5);
+    padding: var(--space-3) var(--space-4) var(--space-4);
+
+    border-bottom: 1px solid var(--color-border);
+}
+
+.calendar-staff-row {
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
+    align-items: center;
+
+    gap: var(--space-2);
 
     margin-bottom: var(--space-4);
 }
 
-.calendar-month-label {
-    font-size: var(--text-body-secondary);
-    font-weight: 600;
+.calendar-staff-avatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+
+    width: 34px;
+    height: 34px;
+
+    border-radius: var(--radius-pill);
+
+    background: var(--color-brand-tint);
+    color: var(--color-brand-strong);
+
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.calendar-staff-identity {
+    position: relative;
+
+    flex: 1;
+    min-width: 0;
+}
+
+.calendar-staff-identity select {
+    appearance: none;
+
+    display: block;
+    width: 100%;
+
+    padding: 0 var(--space-5) 0 0;
+    margin: 0;
+
+    border: none;
+    background: none;
+
+    font: inherit;
+    font-size: var(--text-item-title);
+    font-weight: 700;
+    color: var(--color-text);
+
+    cursor: pointer;
+}
+
+.calendar-staff-identity::after {
+    content: "";
+
+    position: absolute;
+    right: 2px;
+    top: 2px;
+
+    width: 14px;
+    height: 14px;
+
+    background-color: var(--color-text-muted);
+
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M6 9L12 15L18 9' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M6 9L12 15L18 9' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+
+    pointer-events: none;
+}
+
+.calendar-staff-role {
+    margin-top: 1px;
+
+    font-size: 11px;
     color: var(--color-text-muted);
+}
+
+.calendar-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    margin-bottom: var(--space-3);
+}
+
+.calendar-month-label {
+    font-size: var(--text-item-title);
+    font-weight: 700;
+    color: var(--color-text);
 }
 
 .calendar-month-nav {
@@ -1264,16 +1329,19 @@ svg {
     align-items: center;
     justify-content: center;
 
-    width: 28px;
     height: 28px;
 
-    padding: 0;
+    padding: 0 var(--space-2);
 
     border: none;
     border-radius: var(--radius-sm);
 
     background: none;
     color: var(--color-text-muted);
+
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
 
     cursor: pointer;
 }
@@ -1287,9 +1355,21 @@ svg {
     height: 18px;
 }
 
+#week-prev-button,
+#week-next-button {
+    width: 28px;
+    padding: 0;
+}
+
 
 /* =========================================
    Calendar — week strip（日期選擇）
+
+   只表達三種狀態：selected / today / neutral。
+   不顯示 content dots——frontend 目前只知道
+   selected date 當天有沒有內容，並不知道整週，
+   顯示 dot 會暗示「沒有 dot 的日期沒有預約」，
+   這是未經證實的資訊，所以拿掉。
 ========================================= */
 
 .week-strip {
@@ -1297,7 +1377,7 @@ svg {
     grid-template-columns: repeat(7, 1fr);
 
     gap: var(--space-1);
-    margin-bottom: var(--space-5);
+    margin-bottom: var(--space-4);
 }
 
 .week-strip-day {
@@ -1334,43 +1414,32 @@ svg {
     border-radius: 50%;
 
     font-size: var(--text-body);
-    font-weight: 600;
+    font-weight: 500;
     color: var(--color-text);
 
     font-variant-numeric: tabular-nums;
 }
 
+/* today, not selected：次要狀態，用獨立色相（偏暖的琥珀棕）
+   做細框，刻意不是品牌綠的淡化版本，才不會跟 selected 競爭 */
 .week-strip-day.is-today .week-strip-date {
-    box-shadow: inset 0 0 0 1.5px var(--color-brand);
+    border: 1.5px solid var(--color-today-fg);
+    color: var(--color-today-fg);
+    font-weight: 700;
 }
 
+/* selected：全畫面最強狀態，實心品牌綠 */
 .week-strip-day.is-selected .week-strip-date {
+    border: none;
     background: var(--color-brand);
     color: var(--color-on-brand);
-}
-
-.week-strip-dot {
-    width: 4px;
-    height: 4px;
-
-    border-radius: 50%;
-
-    background: var(--color-brand);
-
-    visibility: hidden;
-}
-
-.week-strip-day.has-content .week-strip-dot {
-    visibility: visible;
-}
-
-.week-strip-day.is-selected .week-strip-dot {
-    background: var(--color-text-faint);
+    font-weight: 700;
+    box-shadow: 0 2px 6px rgba(31, 138, 92, 0.3);
 }
 
 
 /* =========================================
-   Calendar — selected date + daily schedule
+   Calendar — selected date + 不可預約 action
 ========================================= */
 
 .calendar-selected-date-row {
@@ -1378,27 +1447,35 @@ svg {
     align-items: center;
     justify-content: space-between;
 
-    margin-bottom: var(--space-4);
+    padding-top: var(--space-3);
+
+    border-top: 1px solid var(--color-border);
 }
 
 .calendar-selected-date {
-    font-size: var(--text-page-title);
+    font-size: var(--text-body);
     font-weight: 700;
+    color: var(--color-text);
 }
 
 .calendar-add-button {
     display: flex;
     align-items: center;
-    justify-content: center;
 
-    width: 36px;
-    height: 36px;
+    gap: 6px;
+
+    height: 34px;
+
+    padding: 0 var(--space-3) 0 var(--space-2);
 
     border: 1px solid var(--color-border-strong);
-    border-radius: 50%;
+    border-radius: var(--radius-pill);
 
-    background: var(--color-surface);
+    background: var(--color-surface-tint);
     color: var(--color-text);
+
+    font-size: 13px;
+    font-weight: 600;
 
     cursor: pointer;
 }
@@ -1408,8 +1485,10 @@ svg {
 }
 
 .calendar-add-button .icon {
-    width: 18px;
-    height: 18px;
+    width: 16px;
+    height: 16px;
+
+    color: var(--color-blocked-fg);
 }
 
 .calendar-closed-banner {
@@ -1443,4 +1522,243 @@ svg {
 
     color: var(--color-text-muted);
     font-size: var(--text-body-secondary);
+}
+
+
+/* =========================================
+   Calendar — daily working timeline
+
+   核心結構是 TIME → RAIL → EVENT：rail 是整天的
+   主要 spatial 結構（不是裝飾線），每個 event 的
+   marker 落在 rail 上，start time 是 anchor。
+
+   Duration 用三種壓縮高度 tier 表示（60 / 90-120 /
+   150-180 分鐘），不是真實 1 分鐘 = N px 的比例，
+   避免長預約造成過長 scroll。
+========================================= */
+
+.cal-timeline {
+    position: relative;
+
+    padding-left: 54px;
+}
+
+.cal-timeline::before {
+    content: "";
+
+    position: absolute;
+    left: 40px;
+    top: 6px;
+    bottom: 6px;
+
+    width: 2px;
+    border-radius: 1px;
+
+    background: var(--color-rail);
+}
+
+.cal-tl-item {
+    position: relative;
+
+    margin-bottom: var(--space-3);
+}
+
+.cal-tl-time {
+    position: absolute;
+    left: -54px;
+    top: 2px;
+
+    width: 40px;
+
+    text-align: right;
+
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--color-text-muted);
+
+    font-variant-numeric: tabular-nums;
+}
+
+.cal-tl-dot {
+    position: absolute;
+    left: 36px;
+    top: 2px;
+
+    width: 10px;
+    height: 10px;
+
+    border-radius: 50%;
+    box-shadow: 0 0 0 3px var(--color-bg);
+
+    z-index: 1;
+}
+
+.cal-tl-dot.is-confirmed {
+    background: var(--color-success-fg);
+}
+
+.cal-tl-dot.is-pending {
+    background: var(--color-pending-icon-bg);
+}
+
+/* BlockedTime 的 marker 刻意用方形，不是圓形——即使在
+   灰階或色弱情境下，形狀差異也能跟 Booking 區分 */
+.cal-tl-dot.is-blocked {
+    border-radius: 3px;
+    background: var(--color-blocked-fg);
+}
+
+.cal-tl-surface {
+    border-radius: var(--radius-md);
+    padding: var(--space-2) var(--space-3);
+}
+
+.cal-tl-surface.tier-short    { min-height: 52px; }
+.cal-tl-surface.tier-standard { min-height: 72px; }
+.cal-tl-surface.tier-long     { min-height: 100px; }
+
+.cal-tl-surface {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.cal-tl-row-top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+
+    gap: var(--space-2);
+}
+
+.cal-tl-name {
+    min-width: 0;
+
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-text);
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cal-tl-end {
+    flex-shrink: 0;
+
+    font-size: 11px;
+    color: var(--color-text-faint);
+
+    font-variant-numeric: tabular-nums;
+}
+
+.cal-tl-meta {
+    margin-top: 2px;
+
+    font-size: var(--text-body-secondary);
+    color: var(--color-text-muted);
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cal-tl-item.confirmed .cal-tl-surface {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    box-shadow: var(--shadow-card);
+}
+
+.cal-tl-item.pending .cal-tl-surface {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-left: 3px solid var(--color-pending-fg);
+}
+
+.cal-tl-item.pending .cal-tl-end {
+    color: var(--color-pending-fg);
+}
+
+/* BlockedTime surface：斜紋紋理 + 虛線框，跟 Booking 的
+   實色卡片在「形狀」與「紋理」兩個維度上都不同，不只是
+   換一個背景色 */
+.cal-tl-item.blocked .cal-tl-surface {
+    background: repeating-linear-gradient(
+        135deg,
+        var(--color-blocked-bg),
+        var(--color-blocked-bg) 7px,
+        #e4e3ec 7px,
+        #e4e3ec 14px
+    );
+    border: 1px dashed var(--color-blocked-fg);
+
+    align-items: flex-start;
+}
+
+.cal-tl-item.blocked .cal-tl-name {
+    font-size: 14px;
+    color: var(--color-blocked-fg);
+}
+
+.cal-tl-item.blocked .cal-tl-meta {
+    color: var(--color-blocked-fg);
+    opacity: 0.85;
+}
+
+/* 低權重 gap 提示——只在「夠長、對插入新預約有意義」的
+   空檔才出現，掛在 rail 上，不屬於任何一筆 Booking，
+   避免被誤認為上一位客人的備註 */
+.cal-tl-gap {
+    position: relative;
+
+    height: 36px;
+    margin: -4px 0 var(--space-3);
+}
+
+.cal-tl-gap-rail {
+    position: absolute;
+    left: 39px;
+    top: 0;
+    bottom: 0;
+
+    width: 2px;
+
+    background-image: linear-gradient(var(--color-gap-hint) 45%, transparent 0%);
+    background-size: 2px 7px;
+    background-repeat: repeat-y;
+}
+
+.cal-tl-gap-label {
+    position: absolute;
+    left: 54px;
+    top: 50%;
+    transform: translateY(-50%);
+
+    font-size: 11px;
+    color: var(--color-text-faint);
+}
+
+/* 營業時間結束：timeline 的邊界，不是普通文字 */
+.cal-tl-end-boundary {
+    position: relative;
+
+    margin-left: 0;
+    padding: var(--space-2) 0 var(--space-1);
+
+    font-size: 11px;
+    color: var(--color-text-faint);
+    text-align: center;
+}
+
+.cal-tl-end-boundary::before {
+    content: "";
+
+    position: absolute;
+    left: -54px;
+    top: 10px;
+
+    width: 10px;
+    height: 2px;
+
+    background: var(--color-rail);
 }
